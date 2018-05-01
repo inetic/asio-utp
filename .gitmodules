@@ -1,0 +1,3 @@
+[submodule "src/libutp"]
+	path = src/libutp
+	url = git@github.com:bittorrent/libutp.git
