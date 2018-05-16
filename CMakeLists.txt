@@ -44,7 +44,7 @@ target_include_directories(asio_utp PUBLIC
 file(GLOB ucat_sources "./example/*.cpp")
 add_executable(ucat ${ucat_sources})
 add_dependencies(ucat asio_utp)
-target_link_libraries(ucat asio_utp ${Boost_LIBRARIES})
+target_link_libraries(ucat asio_utp ${Boost_LIBRARIES} Threads::Threads)
 
 target_include_directories(ucat PUBLIC
     "${CXX_INCLUDE_DIR}"
@@ -54,10 +54,10 @@ target_include_directories(ucat PUBLIC
 # Tests
 add_executable(test-util "test/util.cpp")
 target_include_directories(test-util PUBLIC "./src" "${Boost_INCLUDE_DIR}")
-target_link_libraries(test-util ${Boost_LIBRARIES})
+target_link_libraries(test-util ${Boost_LIBRARIES} Threads::Threads)
 
 # Tests
 add_executable(test-comm "test/comm.cpp")
 target_include_directories(test-comm PUBLIC "./src" "${Boost_INCLUDE_DIR}")
-target_link_libraries(test-comm asio_utp ${Boost_LIBRARIES})
+target_link_libraries(test-comm asio_utp ${Boost_LIBRARIES} Threads::Threads)
 

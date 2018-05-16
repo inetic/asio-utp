@@ -1,62 +1,154 @@
 #include <iostream>
 #include <utp.hpp>
 #include <boost/asio.hpp>
+#include <boost/asio/spawn.hpp>
+#include <boost/asio/streambuf.hpp>
+#include <boost/asio/posix/stream_descriptor.hpp>
+#include <unistd.h> // dup
+
+#include "block.h"
+
+#if BOOST_VERSION < 106400
+#error "The ucat.cpp example requires Boost version 1.47 or higher"
+// Because posix::stream_descriptor has trouble reading from STDIN_FILENO in
+// earlier versions.
+#endif
 
 using namespace std;
 namespace asio = boost::asio;
 namespace ip   = asio::ip;
 namespace sys  = boost::system;
 
-void be_server(asio::io_service& ios)
+struct defer {
+    std::function<void()> f;
+    ~defer() { f(); }
+};
+
+ip::udp::endpoint parse_endpoint(string s)
 {
-    utp::socket s(ios);
+    auto pos = s.find(':');
 
-    ip::udp::endpoint local_ep(ip::address_v4::loopback(), 1234);
-              
-    s.bind(local_ep);
+    if (pos == string::npos) {
+        throw runtime_error("Failed to parse endpoint");
+    }
 
-    ios.run();
+    auto addr = ip::address::from_string(s.substr(0, pos));
+    auto port = s.substr(pos + 1);
+
+    if (port.empty()) port = "0";
+
+    return {addr, uint16_t(stoi(port))};
 }
 
-void be_client(asio::io_service& ios)
+template<class S1, class S2>
+void forward(S1& s1, S2& s2, asio::yield_context yield)
 {
+    try {
+        std::vector<unsigned char> buffer(4*1024);
+
+        while (true) {
+            size_t n = s1.async_read_some(asio::buffer(buffer), yield);
+            s2.async_write_some(asio::buffer(buffer.data(), n), yield);
+        }
+    }
+    catch (const std::exception& e) {
+        cerr << "forward: " << e.what() << endl;
+    }
+}
+
+void forward(utp::socket s, asio::yield_context yield)
+{
+    auto& ios = s.get_io_service();
+
+    block b1(ios), b2(ios);
+
+    asio::spawn(ios, [&] (asio::yield_context yield) {
+        defer on_exit{[&] { b1.release(); }};
+        asio::posix::stream_descriptor output(ios, ::dup(STDOUT_FILENO));
+        forward(s, output, yield);
+    });
+
+    asio::spawn(ios, [&] (asio::yield_context yield) {
+        defer on_exit{[&] { b2.release(); }};
+        asio::posix::stream_descriptor input(ios, ::dup(STDIN_FILENO));
+        forward(input, s, yield);
+    });
+
+    b1.wait(yield);
+    b2.wait(yield);
+}
+
+void server( asio::io_service& ios
+           , int argc
+           , const char** argv
+           , asio::yield_context yield)
+{
+    assert(argc >= 3);
+
     utp::socket s(ios);
+    s.bind(parse_endpoint(argv[2]));
 
-    ip::udp::endpoint local_ep(ip::address_v4::loopback(), 0);
-    ip::udp::endpoint remote_ep(ip::address_v4::loopback(), 1234);
-              
-    s.bind(local_ep);
+    cout << "Accepting on: " << s.local_endpoint() << endl;
+    s.async_accept(yield);
+    cout << "Accepted"  << endl;
 
-    s.async_connect(remote_ep, [] (const sys::error_code& ec) {
-            cout << "on connect: " << ec.message();
-        });
+    forward(move(s), yield);
+}
 
-    ios.run();
+void client( asio::io_service& ios
+           , int argc
+           , const char** argv
+           , asio::yield_context yield)
+{
+    assert(argc >= 3);
+
+    utp::socket s(ios);
+    s.bind({ip::address_v4::loopback(), 0});
+
+    auto remote_ep = parse_endpoint(argv[2]);
+
+    cout << "Connecting to: " << remote_ep << endl;
+    s.async_connect(remote_ep, yield);
+    cout << "Connected" << endl;
+
+    forward(move(s), yield);
 }
 
 void usage(const char* app_name)
 {
     cerr << "Usage:\n"
-         << "  " << app_name << " {s,c}" << endl;
+         << "  " << app_name << " s <endpoint-to-accept-on>" << endl
+         << "  " << app_name << " c <endpoint-to-connect-to>" << endl;
 }
 
 int main(int argc, const char** argv)
 {
     asio::io_service ios;
 
-    if (argc != 2) {
+    if (argc < 2) {
         usage(argv[0]);
         return 1;
     }
 
     if (argv[1] == string("c")) {
-        be_client(ios);
+        asio::spawn(ios, [&] (asio::yield_context yield) {
+            client(ios, argc, argv, yield);
+        });
     }
     else if (argv[1] == string("s")) {
-        be_server(ios);
+        asio::spawn(ios, [&] (asio::yield_context yield) {
+            server(ios, argc, argv, yield);
+        });
     }
     else {
         usage(argv[0]);
         return 1;
+    }
+
+    try {
+        ios.run();
+    }
+    catch(const std::exception& e) {
+        cerr << "Exception: " << e.what() << endl;
     }
 }

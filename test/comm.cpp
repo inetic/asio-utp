@@ -48,13 +48,13 @@ BOOST_AUTO_TEST_CASE(comm_test)
         BOOST_REQUIRE(!ec);
 
         string rx_msg(256, '\0');
-        size_t size = server_s.async_receive(buffer(rx_msg), yield[ec]);
+        size_t size = server_s.async_read_some(buffer(rx_msg), yield[ec]);
         BOOST_REQUIRE(!ec);
         BOOST_REQUIRE_EQUAL(rx_msg.substr(0, size), "hello from client");
 
         string tx_msg("hello from server");
 
-        server_s.async_send(asio::buffer(tx_msg), yield[ec]);
+        server_s.async_write_some(asio::buffer(tx_msg), yield[ec]);
         BOOST_REQUIRE(!ec);
 
         on_finish();
@@ -67,11 +67,11 @@ BOOST_AUTO_TEST_CASE(comm_test)
         BOOST_REQUIRE(!ec);
 
         string tx_msg("hello from client");
-        client_s.async_send(asio::buffer(tx_msg), yield[ec]);
+        client_s.async_write_some(asio::buffer(tx_msg), yield[ec]);
         BOOST_REQUIRE(!ec);
 
         string rx_msg(256, '\0');
-        size_t size = client_s.async_receive(buffer(rx_msg), yield[ec]);
+        size_t size = client_s.async_read_some(buffer(rx_msg), yield[ec]);
         BOOST_REQUIRE(!ec);
         BOOST_REQUIRE_EQUAL(rx_msg.substr(0, size), "hello from server");
 
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(comm_test2)
 
         for (auto e : expect) {
             string rx_msg(e.size(), '\0');
-            size_t size = server_s.async_receive(buffer(rx_msg), yield[ec]);
+            size_t size = server_s.async_read_some(buffer(rx_msg), yield[ec]);
             BOOST_REQUIRE(!ec);
             BOOST_REQUIRE_EQUAL(rx_msg.substr(0, size), e);
         }
@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(comm_test2)
         BOOST_REQUIRE(!ec);
 
         string tx_msg("aabbcc");
-        client_s.async_send(asio::buffer(tx_msg), yield[ec]);
+        client_s.async_write_some(asio::buffer(tx_msg), yield[ec]);
         BOOST_REQUIRE(!ec);
 
         on_finish();
@@ -223,7 +223,7 @@ BOOST_AUTO_TEST_CASE(comm_abort_recv)
         });
 
         string rx_msg(256, '\0');
-        server_s.async_receive(buffer(rx_msg), yield[ec]);
+        server_s.async_read_some(buffer(rx_msg), yield[ec]);
         BOOST_REQUIRE_EQUAL(ec, asio::error::operation_aborted);
 
         on_finish();
@@ -241,7 +241,7 @@ BOOST_AUTO_TEST_CASE(comm_abort_recv)
         });
 
         string rx_msg(256, '\0');
-        client_s.async_receive(buffer(rx_msg), yield[ec]);
+        client_s.async_read_some(buffer(rx_msg), yield[ec]);
         BOOST_REQUIRE_EQUAL(ec, asio::error::operation_aborted);
 
         on_finish();
@@ -289,7 +289,7 @@ BOOST_AUTO_TEST_CASE(comm_accept_eof)
         BOOST_REQUIRE(!ec);
 
         string rx_msg(256, '\0');
-        server_s.async_receive(buffer(rx_msg), yield[ec]);
+        server_s.async_read_some(buffer(rx_msg), yield[ec]);
         BOOST_REQUIRE_EQUAL(ec, asio::error::connection_aborted);
     });
 

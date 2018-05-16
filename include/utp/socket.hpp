@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/buffers_iterator.hpp>
 #include <boost/intrusive/list.hpp>
@@ -50,15 +51,17 @@ public:
 
     template< typename ConstBufferSequence
             , typename CompletionToken>
-    auto async_send(const ConstBufferSequence&, CompletionToken&&);
+    auto async_write_some(const ConstBufferSequence&, CompletionToken&&);
 
     template< typename MutableBufferSequence
             , typename CompletionToken>
-    auto async_receive(const MutableBufferSequence&, CompletionToken&&);
+    auto async_read_some(const MutableBufferSequence&, CompletionToken&&);
 
     boost::asio::ip::udp::endpoint local_endpoint() const;
 
     void close();
+
+    boost::asio::io_service& get_io_service() const { return _ios; }
 
     ~socket();
 
@@ -156,8 +159,8 @@ void socket::async_accept(CompletionToken&& token)
 template< typename ConstBufferSequence
         , typename CompletionToken>
 inline
-auto socket::async_send( const ConstBufferSequence& bufs
-                       , CompletionToken&& token)
+auto socket::async_write_some( const ConstBufferSequence& bufs
+                             , CompletionToken&& token)
 {
     namespace asio   = boost::asio;
     namespace system = boost::system;
@@ -179,8 +182,8 @@ auto socket::async_send( const ConstBufferSequence& bufs
 template< typename MutableBufferSequence
         , typename CompletionToken>
 inline
-auto socket::async_receive( const MutableBufferSequence& bufs
-                          , CompletionToken&& token)
+auto socket::async_read_some( const MutableBufferSequence& bufs
+                            , CompletionToken&& token)
 {
     namespace asio   = boost::asio;
     namespace system = boost::system;
