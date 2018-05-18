@@ -203,7 +203,7 @@ void udp_loop::on_read(const sys::error_code& ec, size_t size)
 
     if (!handled) {
         // TODO: Add some way to the user to handle these packets.
-        std::cout << "Unhandled UDP packet" << std::endl;
+        std::cerr << "Unhandled UDP packet" << std::endl;
     }
 
     if (!_socket.is_open()) {

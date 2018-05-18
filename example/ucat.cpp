@@ -52,7 +52,7 @@ void forward(S1& s1, S2& s2, asio::yield_context yield)
         }
     }
     catch (const std::exception& e) {
-        cerr << "forward: " << e.what() << endl;
+        cerr << "Forward: " << e.what() << endl;
     }
 }
 
@@ -88,9 +88,9 @@ void server( asio::io_service& ios
     utp::socket s(ios);
     s.bind(parse_endpoint(argv[2]));
 
-    cout << "Accepting on: " << s.local_endpoint() << endl;
+    cerr << "Accepting on: " << s.local_endpoint() << endl;
     s.async_accept(yield);
-    cout << "Accepted"  << endl;
+    cerr << "Accepted"  << endl;
 
     forward(move(s), yield);
 }
@@ -107,9 +107,9 @@ void client( asio::io_service& ios
 
     auto remote_ep = parse_endpoint(argv[2]);
 
-    cout << "Connecting to: " << remote_ep << endl;
+    cerr << "Connecting to: " << remote_ep << endl;
     s.async_connect(remote_ep, yield);
-    cout << "Connected" << endl;
+    cerr << "Connected" << endl;
 
     forward(move(s), yield);
 }
