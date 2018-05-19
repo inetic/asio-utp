@@ -104,7 +104,6 @@ void socket::on_eof()
 
 void socket::on_destroy()
 {
-    // Set it to nullptr so that we won't call utp_close on it again.
     _utp_socket = nullptr;
     close_with_error(asio::error::connection_aborted);
 }
@@ -238,12 +237,12 @@ void socket::close()
 
 void socket::close_with_error(const sys::error_code& ec)
 {
-    if (_utp_socket) {
+    if (_utp_socket && !_closed) {
+        _closed = true;
         utp_close((utp_socket*) _utp_socket);
-        _utp_socket = nullptr;
     }
 
-    if (_udp_loop) {
+    if (!_utp_socket && _udp_loop) {
         if (--_udp_loop->_use_count == 0) {
             _udp_loop->stop();
         }

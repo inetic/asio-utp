@@ -90,6 +90,7 @@ private:
     boost::asio::io_service& _ios;
 
     void* _utp_socket = nullptr;
+    bool _closed = false;
 
     std::shared_ptr<udp_loop> _udp_loop;
 
@@ -197,6 +198,7 @@ auto socket::async_read_some( const MutableBufferSequence& bufs
 
     handler_type handler(std::forward<decltype(token)>(token));
     asio::async_result<handler_type> result(handler);
+
     do_receive(std::move(handler));
 
     return result.get();
