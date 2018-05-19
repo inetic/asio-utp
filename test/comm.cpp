@@ -140,6 +140,68 @@ BOOST_AUTO_TEST_CASE(comm_test2)
 }
 
 
+BOOST_AUTO_TEST_CASE(comm_send_large_data)
+{
+    asio::io_service ios;
+
+    utp::socket server_s(ios);
+    server_s.bind({ip::address_v4::loopback(), 0});
+    auto server_ep = server_s.local_endpoint();
+
+    utp::socket client_s(ios);
+    client_s.bind({ip::address_v4::loopback(), 0});
+
+    srand(time(nullptr));
+
+    std::vector<uint8_t> data(1024);
+
+    for (size_t i = 0; i < data.size(); ++i) {
+        data[i] = uint8_t(i % 256);
+    }
+
+    asio::spawn(ios, [&](asio::yield_context yield) {
+        sys::error_code ec;
+
+        server_s.async_accept(yield[ec]);
+        BOOST_REQUIRE(!ec);
+
+        string rx_msg(256, '\0');
+
+        size_t d = 0;
+        while (true) {
+            size_t n = server_s.async_read_some(buffer(rx_msg), yield[ec]);
+            for (size_t i = 0; i < n; ++i) {
+                BOOST_REQUIRE_EQUAL(uint8_t(rx_msg[i]), uint8_t(d++ % 256));
+            }
+            BOOST_REQUIRE_EQUAL(ec, sys::error_code());
+            if (d == data.size()) break;
+        }
+
+        server_s.async_read_some(buffer(rx_msg), yield[ec]);
+        BOOST_REQUIRE_EQUAL(ec, asio::error::connection_aborted);
+    });
+
+    asio::spawn(ios, [&](asio::yield_context yield) {
+        sys::error_code ec;
+
+        client_s.async_connect(server_ep, yield[ec]);
+        BOOST_REQUIRE(!ec);
+
+        asio::const_buffer buf(data.data(), data.size());
+
+        while (asio::buffer_size(buf)) {
+            size_t n = client_s.async_write_some(asio::buffer(buf), yield[ec]);
+            BOOST_REQUIRE(!ec);
+            buf += n;
+        }
+
+        client_s.close();
+    });
+
+    ios.run();
+}
+
+
 BOOST_AUTO_TEST_CASE(comm_abort_accept)
 {
     asio::io_service ios;
