@@ -134,8 +134,9 @@ void socket::do_send(send_handler_type&& h)
                         h(ec, size);
                     };
 
-
     bool still_writable = true;
+
+    _bytes_sent = 0;
 
     for (auto b : _tx_buffers) {
         size_t s = asio::buffer_size(b);
