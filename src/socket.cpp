@@ -196,8 +196,8 @@ void socket::do_receive(recv_handler_type&& h)
 
         auto& buf = _rx_buffer_queue.front();
 
-        if (r >= buf.size()) {
-            r -= buf.size();
+        if (r >= buf.size() - buf.consumed) {
+            r -= buf.size() - buf.consumed;
             // TODO: This is inefficient.
             _rx_buffer_queue.erase(_rx_buffer_queue.begin());
         } else {
