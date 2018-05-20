@@ -46,12 +46,6 @@ void socket::on_connect()
 }
 
 
-void socket::on_writable()
-{
-    cerr << this << " socket::on_writable()" << endl;
-}
-
-
 void socket::on_receive(const unsigned char* buf, size_t size)
 {
     using asio::const_buffer;
@@ -163,6 +157,17 @@ void socket::do_send(send_handler_type&& h)
 
         _bytes_sent = 0;
     }
+}
+
+
+void socket::on_writable()
+{
+    if (!_send_handler) return;
+
+    // TODO: Do we need to post here?
+    _ios.post([h = move(_send_handler), c = _bytes_sent] {
+            h(sys::error_code(), c);
+        });
 }
 
 
