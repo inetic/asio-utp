@@ -110,7 +110,7 @@ private:
         operator boost::asio::const_buffer() const {
             assert(consumed <= this->size());
             return boost::asio::const_buffer( this->data() + consumed
-                                            , this->size());
+                                            , this->size() - consumed);
         }
     };
 
