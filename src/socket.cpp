@@ -116,7 +116,7 @@ void socket::on_accept(void* usocket)
 }
 
 
-void socket::do_send(send_handler_type&& h)
+void socket::do_send(send_handler_type h)
 {
     assert(!_send_handler);
     assert(_utp_socket);
@@ -163,11 +163,7 @@ void socket::do_send(send_handler_type&& h)
 void socket::on_writable()
 {
     if (!_send_handler) return;
-
-    // TODO: Do we need to post here?
-    _ios.post([h = move(_send_handler), c = _bytes_sent] {
-            h(sys::error_code(), c);
-        });
+    do_send(move(_send_handler));
 }
 
 

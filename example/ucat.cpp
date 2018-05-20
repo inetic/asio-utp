@@ -48,15 +48,7 @@ void forward(S1& s1, S2& s2, asio::yield_context yield)
 
         while (true) {
             size_t n = s1.async_read_some(asio::buffer(buffer), yield);
-
-            // TODO: Why doesn't this work the same way as the code below?
-            //asio::async_write(s2, asio::buffer(buffer.data(), n), yield);
-
-            size_t sent = 0;
-            while (sent < n) {
-                size_t k = s2.async_write_some(asio::buffer(buffer.data() + sent, n - sent), yield);
-                sent += k;
-            }
+            asio::async_write(s2, asio::buffer(buffer.data(), n), yield);
         }
     }
     catch (const std::exception& e) {

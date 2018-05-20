@@ -79,7 +79,7 @@ private:
 
     accept_hook_type _accept_hook;
 
-    void do_send(send_handler_type&&);
+    void do_send(send_handler_type);
     void do_receive(recv_handler_type&&);
     void do_connect(const endpoint_type&);
     void do_accept(accept_handler_type&&);
