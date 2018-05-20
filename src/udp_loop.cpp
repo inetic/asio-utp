@@ -34,8 +34,9 @@ struct udp_loop::ticker_type : public enable_shared_from_this<ticker_type> {
     }
 };
 
-uint64 udp_loop::callback_log(utp_callback_arguments*)
+uint64 udp_loop::callback_log(utp_callback_arguments* a)
 {
+    cerr << "LOG: " << a->socket << " " << a->buf << endl;
     return 0;
 }
 
@@ -141,7 +142,7 @@ udp_loop::udp_loop(asio::ip::udp::socket socket)
 
     utp_context_set_userdata(_utp_ctx, this);
 
-    utp_set_callback(_utp_ctx, UTP_LOG,             &callback_log);
+    //utp_set_callback(_utp_ctx, UTP_LOG,             &callback_log);
     utp_set_callback(_utp_ctx, UTP_SENDTO,          &callback_sendto);
     utp_set_callback(_utp_ctx, UTP_ON_ERROR,        &callback_on_error);
     utp_set_callback(_utp_ctx, UTP_ON_STATE_CHANGE, &callback_on_state_change);
