@@ -189,10 +189,16 @@ BOOST_AUTO_TEST_CASE(comm_send_large_data)
 
         asio::const_buffer buf(data.data(), data.size());
 
-        while (asio::buffer_size(buf)) {
-            size_t n = client_s.async_write_some(asio::buffer(buf), yield[ec]);
+        size_t sent = 0;
+        while (sent != data.size()) {
+            size_t k = std::min<size_t>(data.size() - sent, 333);
+
+            size_t n = client_s.async_write_some
+                ( asio::buffer(data.data() + sent, k)
+                , yield[ec]);
+
             BOOST_REQUIRE(!ec);
-            buf += n;
+            sent += n;
         }
 
         client_s.close();
