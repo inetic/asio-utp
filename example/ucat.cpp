@@ -43,16 +43,15 @@ ip::udp::endpoint parse_endpoint(string s)
 template<class S1, class S2>
 void forward(S1& s1, S2& s2, asio::yield_context yield)
 {
-    try {
-        std::vector<unsigned char> buffer(4*1024);
+    std::vector<unsigned char> buffer(4*1024);
 
-        while (true) {
-            size_t n = s1.async_read_some(asio::buffer(buffer), yield);
-            asio::async_write(s2, asio::buffer(buffer.data(), n), yield);
-        }
-    }
-    catch (const std::exception& e) {
-        cerr << "Forward: " << e.what() << endl;
+    sys::error_code ec;
+
+    while (true) {
+        size_t n = s1.async_read_some(asio::buffer(buffer), yield[ec]);
+        if (ec) return;
+        asio::async_write(s2, asio::buffer(buffer.data(), n), yield[ec]);
+        if (ec) return;
     }
 }
 
@@ -62,15 +61,22 @@ void forward(utp::socket s, asio::yield_context yield)
 
     block b1(ios), b2(ios);
 
+    asio::posix::stream_descriptor output(ios, ::dup(STDOUT_FILENO));
+    asio::posix::stream_descriptor input (ios, ::dup(STDIN_FILENO));
+
+    auto close_everything = [&] {
+        s.close();
+        if (output.is_open()) output.close();
+        if (input .is_open()) input .close();
+    };
+
     asio::spawn(ios, [&] (asio::yield_context yield) {
-        defer on_exit{[&] { b1.release(); }};
-        asio::posix::stream_descriptor output(ios, ::dup(STDOUT_FILENO));
+        defer on_exit{[&] { close_everything(); b1.release(); }};
         forward(s, output, yield);
     });
 
     asio::spawn(ios, [&] (asio::yield_context yield) {
-        defer on_exit{[&] { b2.release(); }};
-        asio::posix::stream_descriptor input(ios, ::dup(STDIN_FILENO));
+        defer on_exit{[&] { close_everything(); b2.release(); }};
         forward(input, s, yield);
     });
 
