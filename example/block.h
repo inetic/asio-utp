@@ -38,7 +38,10 @@ block::~block()
 inline
 void block::release()
 {
+    _released = true;
+
     if (!_on_notify) return;
+
     _ios.post([h = std::move(_on_notify)] {
             h(boost::system::error_code());
         });
@@ -56,7 +59,12 @@ void block::wait(boost::asio::yield_context yield)
     Handler handler(yield);
     boost::asio::async_result<Handler> result(handler);
 
-    _on_notify = std::move(handler);
+    _on_notify = std::move(
+        [ h = std::move(handler)
+        , w = boost::asio::io_service::work(_ios)
+        ] (const boost::system::error_code& ec) mutable {
+            h(ec);
+        });
 
     return result.get();
 }
