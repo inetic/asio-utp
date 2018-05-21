@@ -74,6 +74,11 @@ uint64 udp_loop::callback_on_state_change(utp_callback_arguments* a)
 {
     auto socket = (utp::socket*) utp_get_userdata(a->socket);
 
+    if (!socket) {
+        // The utp::socket has detached from this utp_socket
+        return 0;
+    }
+
     switch(a->state) {
         case UTP_STATE_CONNECT:
             socket->on_connect();

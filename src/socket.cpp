@@ -267,6 +267,12 @@ void socket::close_with_error(const sys::error_code& ec)
 
 socket::~socket()
 {
+    if (_utp_socket) {
+        // socket::on_destroy has not been called yet
+        utp_set_userdata((utp_socket*) _utp_socket, nullptr);
+        _utp_socket = nullptr;
+    }
+
     close();
 }
 
