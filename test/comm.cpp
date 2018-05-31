@@ -359,7 +359,7 @@ BOOST_AUTO_TEST_CASE(comm_accept_eof)
 
         string rx_msg(256, '\0');
         server_s.async_read_some(buffer(rx_msg), yield[ec]);
-        BOOST_REQUIRE_EQUAL(ec, asio::error::connection_aborted);
+        BOOST_REQUIRE_EQUAL(ec, asio::error::connection_reset);
     });
 
     asio::spawn(ios, [&](asio::yield_context yield) {
