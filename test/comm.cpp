@@ -139,7 +139,8 @@ BOOST_AUTO_TEST_CASE(comm_test2)
     BOOST_REQUIRE_EQUAL(end_count, size_t(0));
 }
 
-
+// TODO: This test works but takes long time for the sockets to stop after
+// successfully doing the large data send/receive.
 BOOST_AUTO_TEST_CASE(comm_send_large_data)
 {
     asio::io_service ios;
@@ -178,7 +179,7 @@ BOOST_AUTO_TEST_CASE(comm_send_large_data)
         }
 
         server_s.async_read_some(buffer(rx_msg), yield[ec]);
-        BOOST_REQUIRE_EQUAL(ec, asio::error::connection_aborted);
+        BOOST_REQUIRE_EQUAL(ec, asio::error::connection_reset);
     });
 
     asio::spawn(ios, [&](asio::yield_context yield) {
