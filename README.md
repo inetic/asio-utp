@@ -10,7 +10,7 @@
 
 # Caveats
 
-* __Accepting__ socket may only start sending **after** it received some data
+* An __accepting__ socket may only start sending **after** it received some data
   from the __connecting__ socket (likely a consequence of
   [this](https://github.com/bittorrent/libutp/issues/74))
 * One has to implement their own timeouts and keep-alive packets because
