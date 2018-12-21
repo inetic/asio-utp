@@ -61,3 +61,8 @@ add_executable(test-comm "test/comm.cpp")
 target_include_directories(test-comm PUBLIC "./src" "${Boost_INCLUDE_DIR}")
 target_link_libraries(test-comm asio_utp ${Boost_LIBRARIES} Threads::Threads)
 
+# Tests
+add_executable(test-bench "test/bench.cpp")
+target_include_directories(test-bench PUBLIC "./src" "${Boost_INCLUDE_DIR}")
+target_link_libraries(test-bench asio_utp ${Boost_LIBRARIES} Threads::Threads)
+
