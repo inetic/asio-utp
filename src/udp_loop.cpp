@@ -72,10 +72,10 @@ uint64 udp_loop::callback_on_error(utp_callback_arguments*)
 
 uint64 udp_loop::callback_on_state_change(utp_callback_arguments* a)
 {
-    auto socket = (utp::socket*) utp_get_userdata(a->socket);
+    auto socket = (utp::socket_impl*) utp_get_userdata(a->socket);
 
     if (!socket) {
-        // The utp::socket has detached from this utp_socket
+        // The utp::socket_impl has detached from this utp_socket
         return 0;
     }
 
@@ -102,7 +102,7 @@ uint64 udp_loop::callback_on_state_change(utp_callback_arguments* a)
 
 uint64 udp_loop::callback_on_read(utp_callback_arguments* a)
 {
-    auto socket = (utp::socket*) utp_get_userdata(a->socket);
+    auto socket = (utp::socket_impl*) utp_get_userdata(a->socket);
     assert(socket);
     socket->on_receive(a->buf, a->len);
 

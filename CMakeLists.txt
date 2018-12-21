@@ -28,7 +28,7 @@ set(libutp_sources "./src/libutp/utp_internal.cpp"
                    "./src/libutp/utp_api.cpp"
                    "./src/libutp/utp_packedsockaddr.cpp")
 
-file(GLOB asio_utp_sources "./src/*.cpp")
+file(GLOB asio_utp_sources "./src/*.cpp" "./src/impl/*.cpp")
 
 set_source_files_properties(${libutp_sources} PROPERTIES COMPILE_FLAGS
     "-Wno-sign-compare -DPOSIX -fno-exceptions -fno-rtti -O3")

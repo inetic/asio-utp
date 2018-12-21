@@ -26,7 +26,7 @@ public:
     bool socket_is_open() const { return _socket.is_open(); }
 
 private:
-    friend class ::utp::socket;
+    friend class ::utp::socket_impl;
 
     void start_reading();
 
@@ -48,10 +48,10 @@ private:
     size_t _use_count = 0;
 
     boost::intrusive::list
-        < socket
-        , boost::intrusive::member_hook< socket
-                                       , socket::accept_hook_type
-                                       , &socket::_accept_hook
+        < socket_impl
+        , boost::intrusive::member_hook< socket_impl
+                                       , socket_impl::accept_hook_type
+                                       , &socket_impl::_accept_hook
                                        >
         , boost::intrusive::constant_time_size<false>
         >
