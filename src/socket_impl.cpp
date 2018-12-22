@@ -226,7 +226,6 @@ void socket_impl::on_eof()
 void socket_impl::on_destroy()
 {
     _utp_socket = nullptr;
-    _self = nullptr;
 
     if (_udp_loop && --_udp_loop->_use_count == 0) {
         _udp_loop->stop();
@@ -234,6 +233,9 @@ void socket_impl::on_destroy()
     }
 
     close_with_error(asio::error::connection_aborted);
+
+    // Do this last as it may trigger the destructor.
+    _self = nullptr;
 }
 
 
