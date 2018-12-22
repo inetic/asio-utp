@@ -340,7 +340,7 @@ BOOST_AUTO_TEST_CASE(comm_abort_recv)
 // It allows the socket which is in the CS_SYN_RECV state to receive a FIN
 // packet and call the state change handler.
 //
-BOOST_AUTO_TEST_CASE(comm_accept_eof)
+BOOST_AUTO_TEST_CASE(comm_server_eof)
 {
     asio::io_service ios;
 
@@ -369,6 +369,48 @@ BOOST_AUTO_TEST_CASE(comm_accept_eof)
         BOOST_REQUIRE(!ec);
 
         client_s.close();
+    });
+
+    ios.run();
+}
+
+BOOST_AUTO_TEST_CASE(comm_client_eof)
+{
+    asio::io_service ios;
+
+    utp::socket server_s(ios);
+    server_s.bind({ip::address_v4::loopback(), 0});
+    auto server_ep = server_s.local_endpoint();
+
+    utp::socket client_s(ios);
+    client_s.bind({ip::address_v4::loopback(), 0});
+
+    asio::spawn(ios, [&](asio::yield_context yield) {
+        sys::error_code ec;
+
+        server_s.async_accept(yield[ec]);
+        BOOST_REQUIRE(!ec);
+
+        string msg(256, '\0');
+        server_s.async_read_some(buffer(msg), yield[ec]);
+
+        server_s.close();
+    });
+
+    asio::spawn(ios, [&](asio::yield_context yield) {
+        sys::error_code ec;
+
+        client_s.async_connect(server_ep, yield[ec]);
+        BOOST_REQUIRE(!ec);
+
+        // We must write to the server first, otherwise it'll ignore us
+        // completely.
+        string msg(256, '\0');
+        client_s.async_write_some(buffer(msg), yield[ec]);
+        BOOST_REQUIRE_EQUAL(ec, sys::error_code());
+
+        client_s.async_read_some(buffer(msg), yield[ec]);
+        BOOST_REQUIRE_EQUAL(ec, asio::error::connection_reset);
     });
 
     ios.run();
