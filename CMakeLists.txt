@@ -2,13 +2,16 @@ cmake_minimum_required (VERSION 3.5)
 set(BOOST_VERSION 1.58)
 include(ExternalProject)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 add_definitions(-DBOOST_COROUTINES_NO_DEPRECATION_WARNING)
 
 set(SANITIZER_FLAGS "-fno-omit-frame-pointer -fsanitize=address")
 
 set(CMAKE_CXX_FLAGS_DEBUG    "${CMAKE_CXX_FLAGS_DEBUG}           ${SANITIZER_FLAGS}")
 set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_STATIC_LINKER_FLAGS_DEBUG} ${SANITIZER_FLAGS}")
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall ${CMAKE_CXX_FLAGS_DEBUG}")
+endif()
 
 #---------------------------------------------------------------------
 project(asio_utp)
