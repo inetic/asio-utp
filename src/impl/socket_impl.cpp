@@ -12,6 +12,7 @@ socket_impl::socket_impl(boost::asio::io_service& ios)
     , _utp_socket(nullptr)
 {}
 
+
 socket_impl::socket_impl(shared_ptr<udp_loop> ul, void* us)
     : _ios(ul->get_io_service())
     , _utp_socket(us)
@@ -75,19 +76,6 @@ void socket_impl::on_receive(const unsigned char* buf, size_t size)
     _ios.post([total, h = move(_recv_handler)] {
         h(sys::error_code(), total);
     });
-}
-
-
-void socket_impl::on_eof()
-{
-    close_with_error(asio::error::connection_reset);
-}
-
-
-void socket_impl::on_destroy()
-{
-    _utp_socket = nullptr;
-    close_with_error(asio::error::connection_aborted);
 }
 
 
@@ -221,22 +209,39 @@ asio::ip::udp::endpoint socket_impl::local_endpoint() const
 
 void socket_impl::close()
 {
+    if (_closed) return;
+
+    _closed = true;
+
     close_with_error(asio::error::operation_aborted);
 }
 
-void socket_impl::close_with_error(const sys::error_code& ec)
+
+void socket_impl::on_eof()
 {
-    if (_utp_socket && !_closed) {
-        _closed = true;
-        utp_close((utp_socket*) _utp_socket);
+    close_with_error(asio::error::connection_reset);
+}
+
+
+void socket_impl::on_destroy()
+{
+    _utp_socket = nullptr;
+    _self = nullptr;
+
+    if (_udp_loop && --_udp_loop->_use_count == 0) {
+        _udp_loop->stop();
+        _udp_loop = nullptr;
     }
 
-    if (!_utp_socket && _udp_loop) {
-        if (--_udp_loop->_use_count == 0) {
-            _udp_loop->stop();
-        }
+    close_with_error(asio::error::connection_aborted);
+}
 
-        _udp_loop = nullptr;
+
+void socket_impl::close_with_error(const sys::error_code& ec)
+{
+    if (_utp_socket) {
+        utp_close((utp_socket*) _utp_socket);
+        _self = shared_from_this();
     }
 
     if (_accept_handler) {
@@ -256,12 +261,12 @@ void socket_impl::close_with_error(const sys::error_code& ec)
 socket_impl::~socket_impl()
 {
     if (_utp_socket) {
-        // socket_impl::on_destroy has not been called yet
         utp_set_userdata((utp_socket*) _utp_socket, nullptr);
-        _utp_socket = nullptr;
     }
-
-    close();
+    else {
+        // _utp_socket is null, so on_destroy won't be called from libutp
+        on_destroy();
+    }
 }
 
 

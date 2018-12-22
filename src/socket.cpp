@@ -20,15 +20,19 @@ boost::asio::ip::udp::endpoint socket::local_endpoint() const
     return _socket_impl->local_endpoint();
 }
 
+bool socket::is_open() const {
+    return _socket_impl && _socket_impl->is_open();
+}
+
 void socket::close()
 {
-    assert(_socket_impl); // TODO: throw
+    if (!is_open()) return;
+
     _socket_impl->close();
     _socket_impl = nullptr;
 }
 
 socket::~socket()
 {
-    if (!_socket_impl) return;
-    _socket_impl->close();
+    if (is_open()) _socket_impl->close();
 }

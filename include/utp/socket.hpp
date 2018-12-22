@@ -40,9 +40,14 @@ public:
 
     boost::asio::ip::udp::endpoint local_endpoint() const;
 
+    bool is_open() const;
+
     void close();
 
     boost::asio::io_service& get_io_service() const { return *_ios; }
+
+    // For debugging only
+    void* pimpl() const { return _socket_impl.get(); }
 
     ~socket();
 

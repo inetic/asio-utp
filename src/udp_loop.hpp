@@ -45,6 +45,7 @@ private:
     utp_context* _utp_ctx;
     asio::ip::udp::endpoint _rx_endpoint;
     std::array<char, 4096> _rx_buffer;
+    // Number of `socket_impl`ementations referencing using `this`.
     size_t _use_count = 0;
 
     boost::intrusive::list

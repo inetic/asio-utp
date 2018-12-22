@@ -6,7 +6,7 @@ namespace utp {
 class udp_loop;
 class socket;
 
-class socket_impl {
+class socket_impl : public std::enable_shared_from_this<socket_impl> {
 public:
     using endpoint_type = boost::asio::ip::udp::endpoint;
 
@@ -43,6 +43,8 @@ public:
     boost::asio::ip::udp::endpoint local_endpoint() const;
 
     void close();
+
+    bool is_open() const { return _udp_loop && !_closed; }
 
     boost::asio::io_service& get_io_service() const { return _ios; }
 
@@ -103,6 +105,11 @@ private:
     // https://stackoverflow.com/a/5984198/273348
     std::vector<buf_t> _rx_buffer_queue;
     std::vector<boost::asio::mutable_buffer> _rx_buffers;
+
+    // This prevents `this` from being destroyed after `socket` is destroyed
+    // until libutp destroys `this->_utp_socket` (there is some IO that is done
+    // in the mean time, like sending FIN packets and such).
+    std::shared_ptr<socket_impl> _self;
 };
 
 } // namespace
