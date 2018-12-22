@@ -147,7 +147,9 @@ udp_loop::udp_loop(asio::ip::udp::socket socket)
 
     utp_context_set_userdata(_utp_ctx, this);
 
-    //utp_set_callback(_utp_ctx, UTP_LOG,             &callback_log);
+#if UTP_DEBUG_LOGGING
+    utp_set_callback(_utp_ctx, UTP_LOG,             &callback_log);
+#endif
     utp_set_callback(_utp_ctx, UTP_SENDTO,          &callback_sendto);
     utp_set_callback(_utp_ctx, UTP_ON_ERROR,        &callback_on_error);
     utp_set_callback(_utp_ctx, UTP_ON_STATE_CHANGE, &callback_on_state_change);
