@@ -225,3 +225,8 @@ asio::io_service& udp_loop::get_io_service()
 {
     return _socket.get_io_service();
 }
+
+udp_loop::~udp_loop()
+{
+    utp_destroy(_utp_ctx);
+}

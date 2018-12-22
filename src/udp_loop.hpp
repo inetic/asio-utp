@@ -25,6 +25,8 @@ public:
 
     bool socket_is_open() const { return _socket.is_open(); }
 
+    ~udp_loop();
+
 private:
     friend class ::utp::socket_impl;
 
