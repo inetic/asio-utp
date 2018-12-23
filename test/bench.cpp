@@ -214,13 +214,6 @@ void client( asio::io_context& ioc
     cout << "Sending..." << endl;
     send(socket, Type::client, yield);
     cout << "Done" << endl;
-
-    // TODO: There may still be some outbound data at this point.  If we
-    // destroy the socket here, those data will never arrive to the
-    // destination. We need some flush mechanism.
-    asio::steady_timer t(ioc);
-    t.expires_from_now(chrono::minutes(1));
-    t.async_wait(yield);
 }
 
 
