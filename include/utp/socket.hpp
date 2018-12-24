@@ -5,7 +5,7 @@
 #include <boost/asio/buffers_iterator.hpp>
 #include <boost/intrusive/list.hpp>
 
-#include <utp/impl/socket_impl.hpp>
+#include <utp/detail/socket_impl.hpp>
 
 namespace utp {
 
