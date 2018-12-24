@@ -91,8 +91,7 @@ void server( asio::io_service& ios
 {
     assert(argc >= 3);
 
-    utp::socket s(ios);
-    s.bind(parse_endpoint(argv[2]));
+    utp::socket s(ios, parse_endpoint(argv[2]));
 
     cerr << "Accepting on: " << s.local_endpoint() << endl;
     s.async_accept(yield);
@@ -108,8 +107,7 @@ void client( asio::io_service& ios
 {
     assert(argc >= 3);
 
-    utp::socket s(ios);
-    s.bind({ip::address_v4::loopback(), 0});
+    utp::socket s(ios, {ip::address_v4::loopback(), 0});
 
     auto remote_ep = parse_endpoint(argv[2]);
 

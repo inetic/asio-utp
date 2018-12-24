@@ -135,6 +135,17 @@ void send(Socket& s, Type type, asio::yield_context yield)
     cout << "Took: " << seconds(Clock::now() - start) << "s" << endl;
 }
 
+template<typename Proto>
+typename Proto::socket connect( asio::io_context& ioc
+                              , string_view remote_ep_s
+                              , asio::yield_context yield)
+{
+    auto remote_ep = parse_endpoint<Proto>(remote_ep_s);
+    typename Proto::socket socket(ioc, {asio::ip::address_v4::any(), 0});
+    socket.async_connect(remote_ep, yield);
+    return socket;
+}
+
 template<typename Proto> struct Async;
 
 template<> struct Async<tcp> {
@@ -151,17 +162,6 @@ template<> struct Async<tcp> {
     
         return socket;
     }
-
-    static
-    tcp::socket connect( asio::io_context& ioc
-                       , string_view remote_ep_s
-                       , asio::yield_context yield)
-    {
-        auto remote_ep = parse_endpoint<tcp>(remote_ep_s);
-        tcp::socket socket(ioc, {asio::ip::address_v4::any(), 0});
-        socket.async_connect(remote_ep, yield);
-        return socket;
-    }
 };
 
 template<> struct Async<Utp> {
@@ -172,22 +172,9 @@ template<> struct Async<Utp> {
     {
         auto local_ep = parse_endpoint<Utp>(local_ep_s);
     
-        utp::socket socket(ioc);
-        socket.bind(local_ep);
+        utp::socket socket(ioc, local_ep);
         socket.async_accept(yield);
     
-        return socket;
-    }
-   
-    static
-    utp::socket connect( asio::io_context& ioc
-                       , string_view remote_ep_s
-                       , asio::yield_context yield)
-    {
-        auto remote_ep = parse_endpoint<Utp>(remote_ep_s);
-        utp::socket socket(ioc);
-        socket.bind({asio::ip::address_v4::any(), 0});
-        socket.async_connect(remote_ep, yield);
         return socket;
     }
 };
@@ -210,7 +197,7 @@ void client( asio::io_context& ioc
            , asio::yield_context yield)
 {
     cout << "Connecting..." << endl;
-    auto socket = Async<Proto>::connect(ioc, remote_ep_s, yield);
+    auto socket = connect<Proto>(ioc, remote_ep_s, yield);
     cout << "Sending..." << endl;
     send(socket, Type::client, yield);
     cout << "Done" << endl;

@@ -20,9 +20,7 @@ public:
     socket(socket&&) = default;
     socket& operator=(socket&&) = default;
 
-    socket(boost::asio::io_service&);
-
-    void bind(const endpoint_type&);
+    socket(boost::asio::io_service&, const endpoint_type&);
 
     template<typename CompletionToken>
     void async_connect(const endpoint_type&, CompletionToken&&);

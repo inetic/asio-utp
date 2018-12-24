@@ -26,12 +26,10 @@ BOOST_AUTO_TEST_CASE(comm_test)
 {
     asio::io_service ios;
 
-    utp::socket server_s(ios);
-    server_s.bind({ip::address_v4::loopback(), 0});
-    auto server_ep = server_s.local_endpoint();
+    utp::socket server_s(ios, {ip::address_v4::loopback(), 0});
+    utp::socket client_s(ios, {ip::address_v4::loopback(), 0});
 
-    utp::socket client_s(ios);
-    client_s.bind({ip::address_v4::loopback(), 0});
+    auto server_ep = server_s.local_endpoint();
 
     size_t end_count = 2;
 
@@ -88,12 +86,10 @@ BOOST_AUTO_TEST_CASE(comm_test2)
 {
     asio::io_service ios;
 
-    utp::socket server_s(ios);
-    server_s.bind({ip::address_v4::loopback(), 0});
-    auto server_ep = server_s.local_endpoint();
+    utp::socket server_s(ios, {ip::address_v4::loopback(), 0});
+    utp::socket client_s(ios, {ip::address_v4::loopback(), 0});
 
-    utp::socket client_s(ios);
-    client_s.bind({ip::address_v4::loopback(), 0});
+    auto server_ep = server_s.local_endpoint();
 
     size_t end_count = 2;
 
@@ -145,12 +141,10 @@ BOOST_AUTO_TEST_CASE(comm_send_large_data)
 {
     asio::io_service ios;
 
-    utp::socket server_s(ios);
-    server_s.bind({ip::address_v4::loopback(), 0});
-    auto server_ep = server_s.local_endpoint();
+    utp::socket server_s(ios, {ip::address_v4::loopback(), 0});
+    utp::socket client_s(ios, {ip::address_v4::loopback(), 0});
 
-    utp::socket client_s(ios);
-    client_s.bind({ip::address_v4::loopback(), 0});
+    auto server_ep = server_s.local_endpoint();
 
     srand(time(nullptr));
 
@@ -213,9 +207,7 @@ BOOST_AUTO_TEST_CASE(comm_abort_accept)
 {
     asio::io_service ios;
 
-    utp::socket socket(ios);
-
-    socket.bind({ip::address_v4::loopback(), 0});
+    utp::socket socket(ios, {ip::address_v4::loopback(), 0});
 
     asio::spawn(ios, [&](asio::yield_context yield) {
         sys::error_code ec;
@@ -237,11 +229,8 @@ BOOST_AUTO_TEST_CASE(comm_abort_connect)
 {
     asio::io_service ios;
 
-    utp::socket client_s(ios);
-    utp::socket server_s(ios);
-
-    client_s.bind({ip::address_v4::loopback(), 0});
-    server_s.bind({ip::address_v4::loopback(), 0});
+    utp::socket client_s(ios, {ip::address_v4::loopback(), 0});
+    utp::socket server_s(ios, {ip::address_v4::loopback(), 0});
 
     asio::spawn(ios, [&](asio::yield_context yield) {
         sys::error_code ec;
@@ -265,12 +254,10 @@ BOOST_AUTO_TEST_CASE(comm_abort_recv)
 {
     asio::io_service ios;
 
-    utp::socket server_s(ios);
-    server_s.bind({ip::address_v4::loopback(), 0});
-    auto server_ep = server_s.local_endpoint();
+    utp::socket server_s(ios, {ip::address_v4::loopback(), 0});
+    utp::socket client_s(ios, {ip::address_v4::loopback(), 0});
 
-    utp::socket client_s(ios);
-    client_s.bind({ip::address_v4::loopback(), 0});
+    auto server_ep = server_s.local_endpoint();
 
     size_t end_count = 2;
 
@@ -344,12 +331,10 @@ BOOST_AUTO_TEST_CASE(comm_server_eof)
 {
     asio::io_service ios;
 
-    utp::socket server_s(ios);
-    server_s.bind({ip::address_v4::loopback(), 0});
-    auto server_ep = server_s.local_endpoint();
+    utp::socket server_s(ios, {ip::address_v4::loopback(), 0});
+    utp::socket client_s(ios, {ip::address_v4::loopback(), 0});
 
-    utp::socket client_s(ios);
-    client_s.bind({ip::address_v4::loopback(), 0});
+    auto server_ep = server_s.local_endpoint();
 
     asio::spawn(ios, [&](asio::yield_context yield) {
         sys::error_code ec;
@@ -378,12 +363,10 @@ BOOST_AUTO_TEST_CASE(comm_client_eof)
 {
     asio::io_service ios;
 
-    utp::socket server_s(ios);
-    server_s.bind({ip::address_v4::loopback(), 0});
-    auto server_ep = server_s.local_endpoint();
+    utp::socket server_s(ios, {ip::address_v4::loopback(), 0});
+    utp::socket client_s(ios, {ip::address_v4::loopback(), 0});
 
-    utp::socket client_s(ios);
-    client_s.bind({ip::address_v4::loopback(), 0});
+    auto server_ep = server_s.local_endpoint();
 
     asio::spawn(ios, [&](asio::yield_context yield) {
         sys::error_code ec;
