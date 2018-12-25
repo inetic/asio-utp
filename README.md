@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/inetic/asio-utp/tree/master.svg?style=shield)](https://circleci.com/gh/inetic/asio-utp/tree/master)
+
 # Asio wrapper over the uTorrent's (MIT licensed) uTP library
 
 # Advantages over TCP
