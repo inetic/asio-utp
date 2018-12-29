@@ -1,3 +1,9 @@
+/*
+ * This is a simple benchmark that sends a random set of data from the client
+ * to the server. The random bytes are predictable on the server and thus
+ * checked for correctness. The benchmark can use the utp socket implemented in
+ * this library or the asio::tcp sockets for comparison.
+ */
 #include <iostream>
 #include <sstream>
 #include <boost/asio.hpp>
