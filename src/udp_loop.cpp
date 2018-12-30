@@ -34,6 +34,30 @@ struct udp_loop::ticker_type : public enable_shared_from_this<ticker_type> {
     }
 };
 
+/* static */
+std::map<udp_loop::endpoint_type, std::shared_ptr<udp_loop>>&
+udp_loop::udp_loops()
+{
+    static std::map<endpoint_type, shared_ptr<udp_loop>> loops;
+    return loops;
+}
+
+/* static */
+std::shared_ptr<udp_loop>
+udp_loop::get_or_create(asio::io_service& ios, const endpoint_type& ep)
+{
+    auto& loops = udp_loops();
+
+    auto i = loops.find(ep);
+
+    if (i != loops.end()) return i->second;
+
+    auto loop = make_shared<udp_loop>(socket_type(ios, ep));
+    loops[loop->udp_socket().local_endpoint()] = loop;
+
+    return loop;
+}
+
 uint64 udp_loop::callback_log(utp_callback_arguments* a)
 {
     cerr << "LOG: " << a->socket << " " << a->buf << endl;
@@ -156,6 +180,16 @@ udp_loop::udp_loop(asio::ip::udp::socket socket)
     utp_set_callback(_utp_ctx, UTP_ON_READ,         &callback_on_read);
     utp_set_callback(_utp_ctx, UTP_ON_FIREWALL,     &callback_on_firewall);
     utp_set_callback(_utp_ctx, UTP_ON_ACCEPT,       &callback_on_accept);
+}
+
+void udp_loop::increment_use_count()
+{
+    if (_use_count++ == 0) start();
+}
+
+void udp_loop::decrement_use_count()
+{
+    if (--_use_count == 0) stop();
 }
 
 void udp_loop::start()

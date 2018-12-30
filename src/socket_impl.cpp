@@ -13,19 +13,11 @@ socket_impl::socket_impl(boost::asio::io_service& ios)
 {}
 
 
-socket_impl::socket_impl(shared_ptr<udp_loop> ul, void* us)
-    : _ios(ul->get_io_service())
-    , _utp_socket(us)
-    , _udp_loop(move(ul))
-{}
-
-
 void socket_impl::bind(const endpoint_type& ep)
 {
-    asio::ip::udp::socket s(_ios, ep);
-    _udp_loop = make_shared<udp_loop>(move(s));
-    _udp_loop->_use_count++;
-    _udp_loop->start();
+    assert(!_udp_loop);
+    _udp_loop = udp_loop::get_or_create(_ios, ep);
+    _udp_loop->increment_use_count();
 }
 
 
@@ -227,8 +219,8 @@ void socket_impl::on_destroy()
 {
     _utp_socket = nullptr;
 
-    if (_udp_loop && --_udp_loop->_use_count == 0) {
-        _udp_loop->stop();
+    if (_udp_loop) {
+        _udp_loop->decrement_use_count();
         _udp_loop = nullptr;
     }
 
