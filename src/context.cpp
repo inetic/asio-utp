@@ -1,4 +1,4 @@
-#include "udp_loop.hpp"
+#include "context.hpp"
 #include <utp/socket.hpp>
 #include <boost/asio/steady_timer.hpp>
 
@@ -7,7 +7,7 @@
 using namespace utp;
 using namespace std;
 
-struct udp_loop::ticker_type : public enable_shared_from_this<ticker_type> {
+struct context::ticker_type : public enable_shared_from_this<ticker_type> {
     bool _stopped = false;
     asio::steady_timer _timer;
     function<void()> _on_tick;
@@ -35,38 +35,38 @@ struct udp_loop::ticker_type : public enable_shared_from_this<ticker_type> {
 };
 
 /* static */
-std::map<udp_loop::endpoint_type, std::shared_ptr<udp_loop>>&
-udp_loop::udp_loops()
+std::map<context::endpoint_type, std::shared_ptr<context>>&
+context::contexts()
 {
-    static std::map<endpoint_type, shared_ptr<udp_loop>> loops;
+    static std::map<endpoint_type, shared_ptr<context>> loops;
     return loops;
 }
 
 /* static */
-std::shared_ptr<udp_loop>
-udp_loop::get_or_create(asio::io_service& ios, const endpoint_type& ep)
+std::shared_ptr<context>
+context::get_or_create(asio::io_service& ios, const endpoint_type& ep)
 {
-    auto& loops = udp_loops();
+    auto& loops = contexts();
 
     auto i = loops.find(ep);
 
     if (i != loops.end()) return i->second;
 
-    auto loop = make_shared<udp_loop>(socket_type(ios, ep));
+    auto loop = make_shared<context>(socket_type(ios, ep));
     loops[loop->udp_socket().local_endpoint()] = loop;
 
     return loop;
 }
 
-uint64 udp_loop::callback_log(utp_callback_arguments* a)
+uint64 context::callback_log(utp_callback_arguments* a)
 {
     cerr << "LOG: " << a->socket << " " << a->buf << endl;
     return 0;
 }
 
-uint64 udp_loop::callback_sendto(utp_callback_arguments* a)
+uint64 context::callback_sendto(utp_callback_arguments* a)
 {
-    udp_loop* self = (udp_loop*) utp_context_get_userdata(a->context);
+    context* self = (context*) utp_context_get_userdata(a->context);
 
     sys::error_code ec;
 
@@ -76,7 +76,7 @@ uint64 udp_loop::callback_sendto(utp_callback_arguments* a)
                          , ec);
 
     // The libutp library sometimes calls this function even after the last
-    // socket holding this udp_loop has received an EOF and closed.
+    // socket holding this context has received an EOF and closed.
     // TODO: Should this be fixed in libutp?
     if (ec && ec == asio::error::bad_descriptor) {
         return 0;
@@ -89,12 +89,12 @@ uint64 udp_loop::callback_sendto(utp_callback_arguments* a)
     return 0;
 }
 
-uint64 udp_loop::callback_on_error(utp_callback_arguments*)
+uint64 context::callback_on_error(utp_callback_arguments*)
 {
     return 0;
 }
 
-uint64 udp_loop::callback_on_state_change(utp_callback_arguments* a)
+uint64 context::callback_on_state_change(utp_callback_arguments* a)
 {
     auto socket = (utp::socket_impl*) utp_get_userdata(a->socket);
 
@@ -124,7 +124,7 @@ uint64 udp_loop::callback_on_state_change(utp_callback_arguments* a)
     return 0;
 }
 
-uint64 udp_loop::callback_on_read(utp_callback_arguments* a)
+uint64 context::callback_on_read(utp_callback_arguments* a)
 {
     auto socket = (utp::socket_impl*) utp_get_userdata(a->socket);
     assert(socket);
@@ -133,9 +133,9 @@ uint64 udp_loop::callback_on_read(utp_callback_arguments* a)
     return 0;
 }
 
-uint64 udp_loop::callback_on_firewall(utp_callback_arguments* a)
+uint64 context::callback_on_firewall(utp_callback_arguments* a)
 {
-    auto* self = (udp_loop*) utp_context_get_userdata(a->context);
+    auto* self = (context*) utp_context_get_userdata(a->context);
 
     if (self->_accepting_sockets.empty()) {
         return 1;
@@ -144,9 +144,9 @@ uint64 udp_loop::callback_on_firewall(utp_callback_arguments* a)
     return 0;
 }
 
-uint64 udp_loop::callback_on_accept(utp_callback_arguments* a)
+uint64 context::callback_on_accept(utp_callback_arguments* a)
 {
-    auto* self = (udp_loop*) utp_context_get_userdata(a->context);
+    auto* self = (context*) utp_context_get_userdata(a->context);
 
     if (self->_accepting_sockets.empty()) return 0;
 
@@ -158,7 +158,7 @@ uint64 udp_loop::callback_on_accept(utp_callback_arguments* a)
     return 0;
 }
 
-udp_loop::udp_loop(asio::ip::udp::socket socket)
+context::context(asio::ip::udp::socket socket)
     : _socket(std::move(socket))
     , _utp_ctx(utp_init(2 /* version */))
 {
@@ -182,17 +182,17 @@ udp_loop::udp_loop(asio::ip::udp::socket socket)
     utp_set_callback(_utp_ctx, UTP_ON_ACCEPT,       &callback_on_accept);
 }
 
-void udp_loop::increment_use_count()
+void context::increment_use_count()
 {
     if (_use_count++ == 0) start();
 }
 
-void udp_loop::decrement_use_count()
+void context::decrement_use_count()
 {
     if (--_use_count == 0) stop();
 }
 
-void udp_loop::start()
+void context::start()
 {
     start_reading();
 
@@ -205,7 +205,7 @@ void udp_loop::start()
     _ticker->start();
 }
 
-void udp_loop::stop()
+void context::stop()
 {
     _socket.close();
 
@@ -213,7 +213,7 @@ void udp_loop::stop()
     _ticker = nullptr;
 }
 
-void udp_loop::start_reading()
+void context::start_reading()
 {
     if (!_socket.available()) {
         utp_issue_deferred_acks(_utp_ctx);
@@ -228,7 +228,7 @@ void udp_loop::start_reading()
                                 });
 }
 
-void udp_loop::on_read(const sys::error_code& ec, size_t size)
+void context::on_read(const sys::error_code& ec, size_t size)
 {
     if (ec) {
         utp_issue_deferred_acks(_utp_ctx);
@@ -255,12 +255,12 @@ void udp_loop::on_read(const sys::error_code& ec, size_t size)
     start_reading();
 }
 
-asio::io_service& udp_loop::get_io_service()
+asio::io_service& context::get_io_service()
 {
     return _socket.get_io_service();
 }
 
-udp_loop::~udp_loop()
+context::~context()
 {
     utp_destroy(_utp_ctx);
 }

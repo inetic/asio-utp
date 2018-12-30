@@ -3,7 +3,7 @@
 
 namespace utp {
     
-class udp_loop;
+class context;
 class socket;
 
 class socket_impl : public std::enable_shared_from_this<socket_impl> {
@@ -44,14 +44,14 @@ public:
 
     void close();
 
-    bool is_open() const { return _udp_loop && !_closed; }
+    bool is_open() const { return _context && !_closed; }
 
     boost::asio::io_service& get_io_service() const { return _ios; }
 
     ~socket_impl();
 
 private:
-    friend class ::utp::udp_loop;
+    friend class ::utp::context;
     friend class ::utp::socket;
 
     void on_connect();
@@ -61,7 +61,7 @@ private:
     void on_accept(void* usocket);
     void on_receive(const unsigned char*, size_t);
 
-    socket_impl(std::shared_ptr<udp_loop>, void* utp_socket);
+    socket_impl(std::shared_ptr<context>, void* utp_socket);
 
     accept_hook_type _accept_hook;
 
@@ -78,7 +78,7 @@ private:
     void* _utp_socket = nullptr;
     bool _closed = false;
 
-    std::shared_ptr<udp_loop> _udp_loop;
+    std::shared_ptr<context> _context;
 
     connect_handler_type _connect_handler;
     accept_handler_type  _accept_handler;

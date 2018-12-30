@@ -1,5 +1,5 @@
 #include <utp/socket.hpp>
-#include "../udp_loop.hpp"
+#include "../context.hpp"
 #include "../util.hpp"
 
 #include <utp.h>
@@ -15,9 +15,9 @@ socket_impl::socket_impl(boost::asio::io_service& ios)
 
 void socket_impl::bind(const endpoint_type& ep)
 {
-    assert(!_udp_loop);
-    _udp_loop = udp_loop::get_or_create(_ios, ep);
-    _udp_loop->increment_use_count();
+    assert(!_context);
+    _context = context::get_or_create(_ios, ep);
+    _context->increment_use_count();
 }
 
 
@@ -139,7 +139,7 @@ void socket_impl::do_receive(recv_handler_type&& h)
 {
     assert(!_recv_handler);
 
-    if (!_udp_loop) {
+    if (!_context) {
         return _ios.post([h = move(h)] { h(asio::error::bad_descriptor, 0); });
     }
 
@@ -181,10 +181,10 @@ void socket_impl::do_receive(recv_handler_type&& h)
 void socket_impl::do_accept(accept_handler_type&& h)
 {
     // TODO: Which error code to call `h` with?
-    assert(_udp_loop);
+    assert(_context);
     assert(!_accept_handler);
 
-    _udp_loop->_accepting_sockets.push_back(*this);
+    _context->_accepting_sockets.push_back(*this);
 
     _accept_handler = [ w = asio::io_service::work(_ios)
                       , h = move(h)
@@ -194,8 +194,8 @@ void socket_impl::do_accept(accept_handler_type&& h)
 
 asio::ip::udp::endpoint socket_impl::local_endpoint() const
 {
-    assert(_udp_loop);
-    return _udp_loop->udp_socket().local_endpoint();
+    assert(_context);
+    return _context->udp_socket().local_endpoint();
 }
 
 
@@ -219,9 +219,9 @@ void socket_impl::on_destroy()
 {
     _utp_socket = nullptr;
 
-    if (_udp_loop) {
-        _udp_loop->decrement_use_count();
-        _udp_loop = nullptr;
+    if (_context) {
+        _context->decrement_use_count();
+        _context = nullptr;
     }
 
     close_with_error(asio::error::connection_aborted);
@@ -272,7 +272,7 @@ void socket_impl::do_connect(const endpoint_type& ep, connect_handler_type&& h)
 
     sockaddr addr = util::to_sockaddr(ep);
 
-    _utp_socket = utp_create_socket(_udp_loop->get_utp_context());
+    _utp_socket = utp_create_socket(_context->get_libutp_context());
     utp_set_userdata((utp_socket*) _utp_socket, this);
 
     utp_connect((utp_socket*) _utp_socket, &addr, sizeof(addr));

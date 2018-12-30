@@ -11,15 +11,15 @@
 
 namespace utp {
 
-class udp_loop : public std::enable_shared_from_this<udp_loop> {
+class context : public std::enable_shared_from_this<context> {
 public:
     using endpoint_type = asio::ip::udp::endpoint;
     using socket_type = asio::ip::udp::socket;
 
 public:
-    udp_loop(socket_type socket);
+    context(socket_type socket);
 
-    utp_context* get_utp_context() const { return _utp_ctx; }
+    utp_context* get_libutp_context() const { return _utp_ctx; }
 
     const socket_type& udp_socket() const { return _socket; }
 
@@ -27,9 +27,9 @@ public:
 
     bool socket_is_open() const { return _socket.is_open(); }
 
-    ~udp_loop();
+    ~context();
 
-    static std::shared_ptr<udp_loop>
+    static std::shared_ptr<context>
         get_or_create(asio::io_service&, const endpoint_type&);
 
 private:
@@ -52,7 +52,7 @@ private:
     static uint64 callback_on_firewall(utp_callback_arguments*);
     static uint64 callback_on_accept(utp_callback_arguments*);
 
-    static std::map<endpoint_type, std::shared_ptr<udp_loop>>& udp_loops();
+    static std::map<endpoint_type, std::shared_ptr<context>>& contexts();
 
 private:
     socket_type _socket;
