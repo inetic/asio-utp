@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-
 #include <boost/asio/spawn.hpp>
 
 class block {
@@ -30,6 +29,7 @@ inline
 block::~block()
 {
     if (!_on_notify) return;
+
     _ios.post([h = std::move(_on_notify)] {
             h(boost::asio::error::operation_aborted);
         });
@@ -50,21 +50,18 @@ void block::release()
 inline
 void block::wait(boost::asio::yield_context yield)
 {
+    namespace asio   = boost::asio;
+    namespace system = boost::system;
+
     if (_released) return;
 
-    using Handler = boost::asio::handler_type
-        < boost::asio::yield_context
-        , void(boost::system::error_code)>::type;
+    asio::async_completion<decltype(yield), void(system::error_code)> c(yield);
 
-    Handler handler(yield);
-    boost::asio::async_result<Handler> result(handler);
+    _on_notify = [ h = std::move(c.completion_handler)
+                 , w = asio::io_service::work(_ios)
+                 ] (const system::error_code& ec) mutable {
+                     h(ec);
+                 };
 
-    _on_notify = std::move(
-        [ h = std::move(handler)
-        , w = boost::asio::io_service::work(_ios)
-        ] (const boost::system::error_code& ec) mutable {
-            h(ec);
-        });
-
-    return result.get();
+    return c.result.get();
 }

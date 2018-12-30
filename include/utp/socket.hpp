@@ -61,15 +61,11 @@ void socket::async_connect(const endpoint_type& ep, CompletionToken&& token)
     namespace asio   = boost::asio;
     namespace system = boost::system;
 
-    using handler_type = typename asio::handler_type
-                           < CompletionToken, void(system::error_code)>::type;
+    asio::async_completion<CompletionToken, void(system::error_code)> c(token);
 
-    handler_type handler(std::forward<decltype(token)>(token));
-    asio::async_result<handler_type> result(handler);
+    _socket_impl->do_connect(ep, std::move(c.completion_handler));
 
-    _socket_impl->do_connect(ep, std::move(handler));
-
-    return result.get();
+    return c.result.get();
 }
 
 template<typename CompletionToken>
@@ -78,15 +74,11 @@ void socket::async_accept(CompletionToken&& token)
     namespace asio   = boost::asio;
     namespace system = boost::system;
 
-    using handler_type = typename asio::handler_type
-                           < CompletionToken, void(system::error_code)>::type;
+    asio::async_completion<CompletionToken, void(system::error_code)> c(token);
 
-    handler_type handler(std::forward<decltype(token)>(token));
-    asio::async_result<handler_type> result(handler);
+    _socket_impl->do_accept(std::move(c.completion_handler));
 
-    _socket_impl->do_accept(std::move(handler));
-
-    return result.get();
+    return c.result.get();
 }
 
 template< typename ConstBufferSequence
@@ -104,16 +96,13 @@ auto socket::async_write_some( const ConstBufferSequence& bufs
              , bufs.end()
              , std::back_inserter(_socket_impl->_tx_buffers));
 
-    using handler_type = typename asio::handler_type
-                           < CompletionToken
-                           , void(system::error_code, size_t)>::type;
+    asio::async_completion< CompletionToken
+                          , void(system::error_code, size_t)
+                          > c(token);
 
-    handler_type handler(std::forward<decltype(token)>(token));
-    asio::async_result<handler_type> result(handler);
+    _socket_impl->do_send(std::move(c.completion_handler));
 
-    _socket_impl->do_send(std::move(handler));
-
-    return result.get();
+    return c.result.get();
 }
 
 template< typename MutableBufferSequence
@@ -131,16 +120,13 @@ auto socket::async_read_some( const MutableBufferSequence& bufs
              , bufs.end()
              , std::back_inserter(_socket_impl->_rx_buffers));
 
-    using handler_type = typename asio::handler_type
-                           < CompletionToken
-                           , void(system::error_code, size_t)>::type;
+    asio::async_completion< CompletionToken
+                          , void(system::error_code, size_t)
+                          > c(token);
 
-    handler_type handler(std::forward<decltype(token)>(token));
-    asio::async_result<handler_type> result(handler);
+    _socket_impl->do_receive(std::move(c.completion_handler));
 
-    _socket_impl->do_receive(std::move(handler));
-
-    return result.get();
+    return c.result.get();
 }
 
 } // namespace
