@@ -135,6 +135,41 @@ BOOST_AUTO_TEST_CASE(comm_test2)
     BOOST_REQUIRE_EQUAL(end_count, size_t(0));
 }
 
+
+BOOST_AUTO_TEST_CASE(comm_same_endpoint_multiplex)
+{
+    asio::io_service ios;
+
+    utp::socket server1(ios, {ip::address_v4::loopback(), 0});
+    utp::socket server2(ios, server1.local_endpoint());
+
+    asio::spawn(ios, [&](asio::yield_context yield) {
+        sys::error_code ec;
+
+        server1.async_accept(yield[ec]);
+        BOOST_REQUIRE(!ec);
+
+        server2.async_accept(yield[ec]);
+        BOOST_REQUIRE(!ec);
+    });
+
+    asio::spawn(ios, [&](asio::yield_context yield) {
+        sys::error_code ec;
+
+        utp::socket client1(ios, {ip::address_v4::loopback(), 0});
+        utp::socket client2(ios, client1.local_endpoint());
+
+        client1.async_connect(server1.local_endpoint(), yield[ec]);
+        BOOST_REQUIRE(!ec);
+
+        client2.async_connect(server1.local_endpoint(), yield[ec]);
+        BOOST_REQUIRE(!ec);
+    });
+
+    ios.run();
+}
+
+
 // TODO: This test works but takes long time for the sockets to stop after
 // successfully doing the large data send/receive.
 BOOST_AUTO_TEST_CASE(comm_send_large_data)
