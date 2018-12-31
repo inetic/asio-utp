@@ -2,7 +2,7 @@
 
 # Asio wrapper over the uTorrent's (MIT licensed) uTP library
 
-# Features
+## Features
 
 Similar API to the TCP sockets in Asio.  In particular, the `utp::socket`
 implements the [`AsyncReadStream`] and [`AsyncWriteStream`] requirements.
@@ -12,7 +12,7 @@ requirements. Such as [`async_read`], [`async_write`], [`ssl::stream`], ...
 Also similar to Asio's TCP sockets, `utp::socket`'s `async` API supports
 callbacks, futures and coroutines as completion tokens.
 
-# Advantages of uTP over TCP
+## Advantages of uTP over TCP
 
 * Multiple uTP connections over one UDP port implies
     * free hole-punching on certain types of NATs
@@ -21,7 +21,7 @@ callbacks, futures and coroutines as completion tokens.
 * Yields to TCP
 
 
-# Caveats
+## Caveats
 
 * An __accepting__ socket may only start sending **after** it received some data
   from the __connecting__ socket (likely a consequence of
@@ -34,7 +34,7 @@ callbacks, futures and coroutines as completion tokens.
   is still alive).
 
 
-# TODO
+## TODO
 
 * Add API to handle non-uTP packets
 * Handle ICMP messages
