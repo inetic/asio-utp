@@ -40,7 +40,7 @@ public:
 
     void bind(const endpoint_type&);
 
-    boost::asio::ip::udp::endpoint local_endpoint() const;
+    endpoint_type local_endpoint() const;
 
     void close();
 
