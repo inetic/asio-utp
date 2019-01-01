@@ -15,6 +15,7 @@ callbacks, futures and coroutines as completion tokens.
 ## Advantages of uTP over TCP
 
 * Multiple uTP connections over one UDP port implies
+    * better options to do NAT hole-punching
     * free hole-punching on certain types of NATs
     * fewer open file descriptors
 * Low latency
@@ -39,9 +40,12 @@ callbacks, futures and coroutines as completion tokens.
 * Add API to handle non-uTP packets
 * Handle ICMP messages
 * Thread safety
+* The [API] is pretty minimal and mostly identical to the one in `boost::ip::tcp::socket`, but some
+  documentation wouls still be in place
 
 [`AsyncReadStream`]:  https://www.boost.org/doc/libs/1_69_0/doc/html/boost_asio/reference/AsyncReadStream.html
 [`AsyncWriteStream`]: https://www.boost.org/doc/libs/1_69_0/doc/html/boost_asio/reference/AsyncWriteStream.html
 [`async_read`]:       https://www.boost.org/doc/libs/1_69_0/doc/html/boost_asio/reference/async_read.html
 [`async_write`]:      https://www.boost.org/doc/libs/1_69_0/doc/html/boost_asio/reference/async_write.html
 [`ssl::stream`]:      https://www.boost.org/doc/libs/1_69_0/doc/html/boost_asio/reference/ssl__stream.html
+[API]:                https://github.com/inetic/asio-utp/blob/master/include/utp/socket.hpp#L15
