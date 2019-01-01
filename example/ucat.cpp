@@ -41,7 +41,7 @@ ip::udp::endpoint parse_endpoint(string s)
 }
 
 template<class S1, class S2>
-void forward(S1& s1, S2& s2, asio::yield_context yield)
+void half_duplex_forward(S1& s1, S2& s2, asio::yield_context yield)
 {
     std::vector<unsigned char> buffer(4*1024);
 
@@ -55,7 +55,7 @@ void forward(S1& s1, S2& s2, asio::yield_context yield)
     }
 }
 
-void forward(utp::socket s, asio::yield_context yield)
+void full_duplex_forward(utp::socket s, asio::yield_context yield)
 {
     auto& ios = s.get_io_service();
 
@@ -72,12 +72,12 @@ void forward(utp::socket s, asio::yield_context yield)
 
     asio::spawn(ios, [&] (asio::yield_context yield) {
         defer on_exit{[&] { close_everything(); b1.release(); }};
-        forward(s, output, yield);
+        half_duplex_forward(s, output, yield);
     });
 
     asio::spawn(ios, [&] (asio::yield_context yield) {
         defer on_exit{[&] { close_everything(); b2.release(); }};
-        forward(input, s, yield);
+        half_duplex_forward(input, s, yield);
     });
 
     b1.wait(yield);
@@ -97,7 +97,7 @@ void server( asio::io_service& ios
     s.async_accept(yield);
     cerr << "Accepted"  << endl;
 
-    forward(move(s), yield);
+    full_duplex_forward(move(s), yield);
 }
 
 void client( asio::io_service& ios
@@ -115,7 +115,7 @@ void client( asio::io_service& ios
     s.async_connect(remote_ep, yield);
     cerr << "Connected" << endl;
 
-    forward(move(s), yield);
+    full_duplex_forward(move(s), yield);
 }
 
 void usage(const char* app_name)
