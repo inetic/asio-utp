@@ -3,11 +3,10 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/buffers_iterator.hpp>
-#include <boost/intrusive/list.hpp>
-
-#include <utp/detail/socket_impl.hpp>
 
 namespace utp {
+
+class socket_impl;
 
 class socket {
 public:
@@ -36,7 +35,7 @@ public:
             , typename CompletionToken>
     auto async_read_some(const MutableBufferSequence&, CompletionToken&&);
 
-    boost::asio::ip::udp::endpoint local_endpoint() const;
+    endpoint_type local_endpoint() const;
 
     bool is_open() const;
 
@@ -50,6 +49,20 @@ public:
     ~socket();
 
 private:
+    typedef void(connect_signature)(boost::system::error_code);
+    typedef void(accept_signature)(boost::system::error_code);
+    typedef void(write_signature)(boost::system::error_code, size_t);
+    typedef void(read_signature)(boost::system::error_code, size_t);
+
+    void do_connect(const endpoint_type&, std::function<connect_signature>);
+    void do_accept (std::function<accept_signature>);
+    void do_write  (std::function<write_signature>);
+    void do_read   (std::function<read_signature>);
+
+    std::vector<boost::asio::const_buffer>& tx_buffers();
+    std::vector<boost::asio::mutable_buffer>& rx_buffers();
+
+private:
     boost::asio::io_service* _ios = nullptr;
     std::shared_ptr<socket_impl> _socket_impl;
 };
@@ -58,26 +71,17 @@ template<typename CompletionToken>
 inline
 void socket::async_connect(const endpoint_type& ep, CompletionToken&& token)
 {
-    namespace asio   = boost::asio;
-    namespace system = boost::system;
-
-    asio::async_completion<CompletionToken, void(system::error_code)> c(token);
-
-    _socket_impl->do_connect(ep, std::move(c.completion_handler));
-
+    boost::asio::async_completion<CompletionToken, connect_signature> c(token);
+    do_connect(ep, std::move(c.completion_handler));
     return c.result.get();
 }
 
 template<typename CompletionToken>
+inline
 void socket::async_accept(CompletionToken&& token)
 {
-    namespace asio   = boost::asio;
-    namespace system = boost::system;
-
-    asio::async_completion<CompletionToken, void(system::error_code)> c(token);
-
-    _socket_impl->do_accept(std::move(c.completion_handler));
-
+    boost::asio::async_completion<CompletionToken, accept_signature> c(token);
+    do_accept(std::move(c.completion_handler));
     return c.result.get();
 }
 
@@ -87,20 +91,11 @@ inline
 auto socket::async_write_some( const ConstBufferSequence& bufs
                              , CompletionToken&& token)
 {
-    namespace asio   = boost::asio;
-    namespace system = boost::system;
+    tx_buffers().clear();
+    std::copy(bufs.begin(), bufs.end(), std::back_inserter(tx_buffers()));
 
-    _socket_impl->_tx_buffers.clear();
-
-    std::copy( bufs.begin()
-             , bufs.end()
-             , std::back_inserter(_socket_impl->_tx_buffers));
-
-    asio::async_completion< CompletionToken
-                          , void(system::error_code, size_t)
-                          > c(token);
-
-    _socket_impl->do_send(std::move(c.completion_handler));
+    boost::asio::async_completion<CompletionToken, write_signature> c(token);
+    do_write(std::move(c.completion_handler));
 
     return c.result.get();
 }
@@ -111,20 +106,11 @@ inline
 auto socket::async_read_some( const MutableBufferSequence& bufs
                             , CompletionToken&& token)
 {
-    namespace asio   = boost::asio;
-    namespace system = boost::system;
+    rx_buffers().clear();
+    std::copy(bufs.begin(), bufs.end(), std::back_inserter(rx_buffers()));
 
-    _socket_impl->_rx_buffers.clear();
-
-    std::copy( bufs.begin()
-             , bufs.end()
-             , std::back_inserter(_socket_impl->_rx_buffers));
-
-    asio::async_completion< CompletionToken
-                          , void(system::error_code, size_t)
-                          > c(token);
-
-    _socket_impl->do_receive(std::move(c.completion_handler));
+    boost::asio::async_completion<CompletionToken, read_signature> c(token);
+    do_read(std::move(c.completion_handler));
 
     return c.result.get();
 }

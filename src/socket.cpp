@@ -1,5 +1,7 @@
 #include <utp/socket.hpp>
 #include "namespaces.hpp"
+#include "socket_impl.hpp"
+
 
 using namespace std;
 using namespace utp;
@@ -32,4 +34,34 @@ void socket::close()
 socket::~socket()
 {
     if (is_open()) _socket_impl->close();
+}
+
+void socket::do_connect(const endpoint_type& ep, function<connect_signature> h)
+{
+    _socket_impl->do_connect(ep, std::move(move(h)));
+}
+
+void socket::do_accept(function<accept_signature> h)
+{
+    _socket_impl->do_accept(std::move(h));
+}
+
+void socket::do_write(function<write_signature> h)
+{
+    _socket_impl->do_send(std::move(h));
+}
+
+void socket::do_read(std::function<read_signature> h)
+{
+    _socket_impl->do_receive(std::move(h));
+}
+
+std::vector<boost::asio::const_buffer>& socket::tx_buffers()
+{
+    return _socket_impl->_tx_buffers;
+}
+
+std::vector<boost::asio::mutable_buffer>& socket::rx_buffers()
+{
+    return _socket_impl->_rx_buffers;
 }

@@ -5,6 +5,7 @@
 #include <map>
 #include "namespaces.hpp"
 #include "util.hpp"
+#include "socket_impl.hpp"
 
 #include <utp.h>
 #include <utp/socket.hpp>

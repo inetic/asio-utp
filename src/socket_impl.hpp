@@ -1,5 +1,7 @@
 #pragma once
 
+#include <boost/asio/io_service.hpp>
+#include <boost/intrusive/list.hpp>
 
 namespace utp {
     
