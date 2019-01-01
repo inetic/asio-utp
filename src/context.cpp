@@ -12,8 +12,8 @@ struct context::ticker_type : public enable_shared_from_this<ticker_type> {
     asio::steady_timer _timer;
     function<void()> _on_tick;
 
-    ticker_type(asio::io_service& ios, function<void()> on_tick)
-        : _timer(ios)
+    ticker_type(asio::io_context& ioc, function<void()> on_tick)
+        : _timer(ioc)
         , _on_tick(move(on_tick))
     {}
 
@@ -44,7 +44,7 @@ context::contexts()
 
 /* static */
 std::shared_ptr<context>
-context::get_or_create(asio::io_service& ios, const endpoint_type& ep)
+context::get_or_create(asio::io_context& ioc, const endpoint_type& ep)
 {
     auto& loops = contexts();
 
@@ -52,7 +52,7 @@ context::get_or_create(asio::io_service& ios, const endpoint_type& ep)
 
     if (i != loops.end()) return i->second;
 
-    auto loop = make_shared<context>(socket_type(ios, ep));
+    auto loop = make_shared<context>(socket_type(ioc, ep));
     loops[loop->udp_socket().local_endpoint()] = loop;
 
     return loop;
@@ -196,7 +196,7 @@ void context::start()
 {
     start_reading();
 
-    _ticker = make_shared<ticker_type>(_socket.get_io_service(), [this] {
+    _ticker = make_shared<ticker_type>(get_executor().context(), [this] {
             assert(_utp_ctx);
             if (!_utp_ctx) return;
             utp_check_timeouts(_utp_ctx);
@@ -255,9 +255,9 @@ void context::on_read(const sys::error_code& ec, size_t size)
     start_reading();
 }
 
-asio::io_service& context::get_io_service()
+asio::io_context::executor_type context::get_executor()
 {
-    return _socket.get_io_service();
+    return _socket.get_executor();
 }
 
 context::~context()

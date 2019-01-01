@@ -1,6 +1,5 @@
 #pragma once
 
-#include <boost/asio/io_service.hpp>
 #include <boost/intrusive/list.hpp>
 
 namespace utp {
@@ -38,7 +37,7 @@ public:
     socket_impl(socket_impl&&) = delete;
     socket_impl& operator=(socket_impl&&) = delete;
 
-    socket_impl(boost::asio::io_service&);
+    socket_impl(boost::asio::io_context&);
 
     void bind(const endpoint_type&);
 
@@ -48,7 +47,10 @@ public:
 
     bool is_open() const { return _context && !_closed; }
 
-    boost::asio::io_service& get_io_service() const { return _ios; }
+    boost::asio::io_context::executor_type get_executor() const
+    {
+        return _ioc.get_executor();
+    }
 
     ~socket_impl();
 
@@ -75,7 +77,7 @@ private:
     void close_with_error(const boost::system::error_code&);
 
 private:
-    boost::asio::io_service& _ios;
+    boost::asio::io_context& _ioc;
 
     void* _utp_socket = nullptr;
     bool _closed = false;

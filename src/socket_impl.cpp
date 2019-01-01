@@ -7,8 +7,8 @@
 using namespace utp;
 using namespace std;
 
-socket_impl::socket_impl(boost::asio::io_service& ios)
-    : _ios(ios)
+socket_impl::socket_impl(boost::asio::io_context& ioc)
+    : _ioc(ioc)
     , _utp_socket(nullptr)
 {}
 
@@ -16,14 +16,14 @@ socket_impl::socket_impl(boost::asio::io_service& ios)
 void socket_impl::bind(const endpoint_type& ep)
 {
     assert(!_context);
-    _context = context::get_or_create(_ios, ep);
+    _context = context::get_or_create(_ioc, ep);
     _context->increment_use_count();
 }
 
 
 void socket_impl::on_connect()
 {
-    _ios.post([h = move(_connect_handler)] { h(sys::error_code()); });
+    _ioc.post([h = move(_connect_handler)] { h(sys::error_code()); });
 }
 
 
@@ -65,7 +65,7 @@ void socket_impl::on_receive(const unsigned char* buf, size_t size)
         utp_read_drained((utp_socket*) _utp_socket);
     }
 
-    _ios.post([total, h = move(_recv_handler)] {
+    _ioc.post([total, h = move(_recv_handler)] {
         h(sys::error_code(), total);
     });
 }
@@ -89,7 +89,7 @@ void socket_impl::do_send(send_handler_type h)
     assert(!_send_handler);
     assert(_utp_socket);
 
-    _send_handler = [ w = asio::io_service::work(_ios)
+    _send_handler = [ w = asio::io_context::work(_ioc)
                     , h = std::move(h)]
                     (const sys::error_code& ec, size_t size) {
                         h(ec, size);
@@ -119,7 +119,7 @@ void socket_impl::do_send(send_handler_type h)
     }
 
     if (still_writable) {
-        _ios.post([h = move(_send_handler), c = _bytes_sent] {
+        _ioc.post([h = move(_send_handler), c = _bytes_sent] {
                 h(sys::error_code(), c);
             });
 
@@ -140,10 +140,10 @@ void socket_impl::do_receive(recv_handler_type&& h)
     assert(!_recv_handler);
 
     if (!_context) {
-        return _ios.post([h = move(h)] { h(asio::error::bad_descriptor, 0); });
+        return _ioc.post([h = move(h)] { h(asio::error::bad_descriptor, 0); });
     }
 
-    _recv_handler = [ w = asio::io_service::work(_ios)
+    _recv_handler = [ w = asio::io_context::work(_ioc)
                     , h = std::move(h)]
                     (const sys::error_code& ec, size_t size) {
                         h(ec, size);
@@ -174,7 +174,7 @@ void socket_impl::do_receive(recv_handler_type&& h)
         }
     }
 
-    _ios.post([s, h = move(_recv_handler)] { h(sys::error_code(), s); });
+    _ioc.post([s, h = move(_recv_handler)] { h(sys::error_code(), s); });
 }
 
 
@@ -186,7 +186,7 @@ void socket_impl::do_accept(accept_handler_type&& h)
 
     _context->_accepting_sockets.push_back(*this);
 
-    _accept_handler = [ w = asio::io_service::work(_ios)
+    _accept_handler = [ w = asio::io_context::work(_ioc)
                       , h = move(h)
                       ] (const sys::error_code& ec) { h(ec); };
 }
@@ -239,15 +239,15 @@ void socket_impl::close_with_error(const sys::error_code& ec)
     }
 
     if (_accept_handler) {
-        _ios.post([h = move(_accept_handler), ec] { h(ec); });
+        _ioc.post([h = move(_accept_handler), ec] { h(ec); });
     }
 
     if (_connect_handler) {
-        _ios.post([h = move(_connect_handler), ec] { h(ec); });
+        _ioc.post([h = move(_connect_handler), ec] { h(ec); });
     }
 
     if (_recv_handler) {
-        _ios.post([h = move(_recv_handler), ec] { h(ec, 0); });
+        _ioc.post([h = move(_recv_handler), ec] { h(ec, 0); });
     }
 }
 

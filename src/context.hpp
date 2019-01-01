@@ -24,14 +24,14 @@ public:
 
     const socket_type& udp_socket() const { return _socket; }
 
-    asio::io_service& get_io_service();
+    asio::io_context::executor_type get_executor();
 
     bool socket_is_open() const { return _socket.is_open(); }
 
     ~context();
 
     static std::shared_ptr<context>
-        get_or_create(asio::io_service&, const endpoint_type&);
+        get_or_create(asio::io_context&, const endpoint_type&);
 
 private:
     friend class ::utp::socket_impl;

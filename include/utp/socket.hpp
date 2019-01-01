@@ -1,6 +1,5 @@
 #pragma once
 
-#include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/buffers_iterator.hpp>
 
@@ -19,7 +18,7 @@ public:
     socket(socket&&) = default;
     socket& operator=(socket&&) = default;
 
-    socket(boost::asio::io_service&, const endpoint_type&);
+    socket(boost::asio::io_context&, const endpoint_type&);
 
     template<typename CompletionToken>
     void async_connect(const endpoint_type&, CompletionToken&&);
@@ -41,7 +40,10 @@ public:
 
     void close();
 
-    boost::asio::io_service& get_io_service() const { return *_ios; }
+    boost::asio::io_context::executor_type get_executor() const
+    {
+        return _ioc->get_executor();
+    }
 
     // For debugging only
     void* pimpl() const { return _socket_impl.get(); }
@@ -63,7 +65,7 @@ private:
     std::vector<boost::asio::mutable_buffer>& rx_buffers();
 
 private:
-    boost::asio::io_service* _ios = nullptr;
+    boost::asio::io_context* _ioc = nullptr;
     std::shared_ptr<socket_impl> _socket_impl;
 };
 

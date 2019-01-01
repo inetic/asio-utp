@@ -6,9 +6,9 @@
 using namespace std;
 using namespace utp;
 
-socket::socket(boost::asio::io_service& ios, const endpoint_type& ep)
-    : _ios(&ios)
-    , _socket_impl(make_shared<socket_impl>(ios))
+socket::socket(boost::asio::io_context& ioc, const endpoint_type& ep)
+    : _ioc(&ioc)
+    , _socket_impl(make_shared<socket_impl>(ioc))
 {
     _socket_impl->bind(ep);
 }

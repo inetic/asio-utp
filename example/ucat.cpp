@@ -57,12 +57,12 @@ void half_duplex_forward(S1& s1, S2& s2, asio::yield_context yield)
 
 void full_duplex_forward(utp::socket s, asio::yield_context yield)
 {
-    auto& ios = s.get_io_service();
+    auto& ioc = s.get_executor().context();
 
-    block b1(ios), b2(ios);
+    block b1(ioc), b2(ioc);
 
-    asio::posix::stream_descriptor output(ios, ::dup(STDOUT_FILENO));
-    asio::posix::stream_descriptor input (ios, ::dup(STDIN_FILENO));
+    asio::posix::stream_descriptor output(ioc, ::dup(STDOUT_FILENO));
+    asio::posix::stream_descriptor input (ioc, ::dup(STDIN_FILENO));
 
     auto close_everything = [&] {
         s.close();
@@ -70,12 +70,12 @@ void full_duplex_forward(utp::socket s, asio::yield_context yield)
         if (input .is_open()) input .close();
     };
 
-    asio::spawn(ios, [&] (asio::yield_context yield) {
+    asio::spawn(ioc, [&] (asio::yield_context yield) {
         defer on_exit{[&] { close_everything(); b1.release(); }};
         half_duplex_forward(s, output, yield);
     });
 
-    asio::spawn(ios, [&] (asio::yield_context yield) {
+    asio::spawn(ioc, [&] (asio::yield_context yield) {
         defer on_exit{[&] { close_everything(); b2.release(); }};
         half_duplex_forward(input, s, yield);
     });
@@ -84,14 +84,14 @@ void full_duplex_forward(utp::socket s, asio::yield_context yield)
     b2.wait(yield);
 }
 
-void server( asio::io_service& ios
+void server( asio::io_context& ioc
            , int argc
            , const char** argv
            , asio::yield_context yield)
 {
     assert(argc >= 3);
 
-    utp::socket s(ios, parse_endpoint(argv[2]));
+    utp::socket s(ioc, parse_endpoint(argv[2]));
 
     cerr << "Accepting on: " << s.local_endpoint() << endl;
     s.async_accept(yield);
@@ -100,14 +100,14 @@ void server( asio::io_service& ios
     full_duplex_forward(move(s), yield);
 }
 
-void client( asio::io_service& ios
+void client( asio::io_context& ioc
            , int argc
            , const char** argv
            , asio::yield_context yield)
 {
     assert(argc >= 3);
 
-    utp::socket s(ios, {ip::address_v4::loopback(), 0});
+    utp::socket s(ioc, {ip::address_v4::loopback(), 0});
 
     auto remote_ep = parse_endpoint(argv[2]);
 
@@ -127,7 +127,7 @@ void usage(const char* app_name)
 
 int main(int argc, const char** argv)
 {
-    asio::io_service ios;
+    asio::io_context ioc;
 
     if (argc < 2) {
         usage(argv[0]);
@@ -135,13 +135,13 @@ int main(int argc, const char** argv)
     }
 
     if (argv[1] == string("c")) {
-        asio::spawn(ios, [&] (asio::yield_context yield) {
-            client(ios, argc, argv, yield);
+        asio::spawn(ioc, [&] (asio::yield_context yield) {
+            client(ioc, argc, argv, yield);
         });
     }
     else if (argv[1] == string("s")) {
-        asio::spawn(ios, [&] (asio::yield_context yield) {
-            server(ios, argc, argv, yield);
+        asio::spawn(ioc, [&] (asio::yield_context yield) {
+            server(ioc, argc, argv, yield);
         });
     }
     else {
@@ -150,7 +150,7 @@ int main(int argc, const char** argv)
     }
 
     try {
-        ios.run();
+        ioc.run();
     }
     catch(const std::exception& e) {
         cerr << "Exception: " << e.what() << endl;
