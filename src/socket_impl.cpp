@@ -66,7 +66,7 @@ void socket_impl::on_receive(const unsigned char* buf, size_t size)
     }
 
     _ioc.post([total, h = move(_recv_handler)] {
-        h(sys::error_code(), total);
+        (*h)(sys::error_code(), total);
     });
 }
 
@@ -84,16 +84,17 @@ void socket_impl::on_accept(void* usocket)
 }
 
 
-void socket_impl::do_send(send_handler_type h)
+void socket_impl::do_write(shared_ptr<handler>&& h)
 {
     assert(!_send_handler);
     assert(_utp_socket);
 
-    _send_handler = [ w = asio::io_context::work(_ioc)
+    _send_handler = make_shared<handler>(
+                    [ w = asio::io_context::work(_ioc)
                     , h = std::move(h)]
                     (const sys::error_code& ec, size_t size) {
-                        h(ec, size);
-                    };
+                        (*h)(ec, size);
+                    });
 
     bool still_writable = true;
 
@@ -120,7 +121,7 @@ void socket_impl::do_send(send_handler_type h)
 
     if (still_writable) {
         _ioc.post([h = move(_send_handler), c = _bytes_sent] {
-                h(sys::error_code(), c);
+                (*h)(sys::error_code(), c);
             });
 
         _bytes_sent = 0;
@@ -131,23 +132,26 @@ void socket_impl::do_send(send_handler_type h)
 void socket_impl::on_writable()
 {
     if (!_send_handler) return;
-    do_send(move(_send_handler));
+    do_write(move(_send_handler));
 }
 
 
-void socket_impl::do_receive(recv_handler_type&& h)
+void socket_impl::do_read(shared_ptr<handler>&& h)
 {
     assert(!_recv_handler);
 
     if (!_context) {
-        return _ioc.post([h = move(h)] { h(asio::error::bad_descriptor, 0); });
+        return _ioc.post([h = move(h)] {
+                    (*h)(asio::error::bad_descriptor, 0);
+                });
     }
 
-    _recv_handler = [ w = asio::io_context::work(_ioc)
+    _recv_handler = make_shared<handler>(
+                    [ w = asio::io_context::work(_ioc)
                     , h = std::move(h)]
                     (const sys::error_code& ec, size_t size) {
-                        h(ec, size);
-                    };
+                        (*h)(ec, size);
+                    });
 
     // If we haven't yet received anything, we wait. But note that if we did,
     // but the _rx_buffers is empty, then we still post the callback with zero
@@ -174,7 +178,7 @@ void socket_impl::do_receive(recv_handler_type&& h)
         }
     }
 
-    _ioc.post([s, h = move(_recv_handler)] { h(sys::error_code(), s); });
+    _ioc.post([s, h = move(_recv_handler)] { (*h)(sys::error_code(), s); });
 }
 
 
@@ -247,7 +251,7 @@ void socket_impl::close_with_error(const sys::error_code& ec)
     }
 
     if (_recv_handler) {
-        _ioc.post([h = move(_recv_handler), ec] { h(ec, 0); });
+        _ioc.post([h = move(_recv_handler), ec] { (*h)(ec, 0); });
     }
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/intrusive/list.hpp>
+#include "utp/detail/handler.hpp"
 
 namespace utp {
     
@@ -17,12 +18,6 @@ private:
 
     using accept_handler_type
         = std::function<void(const boost::system::error_code&)>;
-
-    using send_handler_type
-        = std::function<void(const boost::system::error_code&, size_t)>;
-
-    using recv_handler_type
-        = std::function<void(const boost::system::error_code&, size_t)>;
 
 private:
     using accept_hook_type
@@ -69,8 +64,8 @@ private:
 
     accept_hook_type _accept_hook;
 
-    void do_send(send_handler_type);
-    void do_receive(recv_handler_type&&);
+    void do_write(std::shared_ptr<handler>&&);
+    void do_read(std::shared_ptr<handler>&&);
     void do_connect(const endpoint_type&, connect_handler_type&&);
     void do_accept(accept_handler_type&&);
 
@@ -86,8 +81,8 @@ private:
 
     connect_handler_type _connect_handler;
     accept_handler_type  _accept_handler;
-    send_handler_type    _send_handler;
-    recv_handler_type    _recv_handler;
+    std::shared_ptr<handler> _send_handler;
+    std::shared_ptr<handler> _recv_handler;
 
     size_t _bytes_sent = 0;
     std::vector<boost::asio::const_buffer> _tx_buffers;

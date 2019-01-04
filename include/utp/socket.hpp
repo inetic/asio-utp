@@ -2,6 +2,7 @@
 
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/buffers_iterator.hpp>
+#include "detail/handler.hpp"
 
 namespace utp {
 
@@ -53,13 +54,11 @@ public:
 private:
     typedef void(connect_signature)(boost::system::error_code);
     typedef void(accept_signature)(boost::system::error_code);
-    typedef void(write_signature)(boost::system::error_code, size_t);
-    typedef void(read_signature)(boost::system::error_code, size_t);
 
     void do_connect(const endpoint_type&, std::function<connect_signature>);
     void do_accept (std::function<accept_signature>);
-    void do_write  (std::function<write_signature>);
-    void do_read   (std::function<read_signature>);
+    void do_write  (std::shared_ptr<handler>&&);
+    void do_read   (std::shared_ptr<handler>&&);
 
     std::vector<boost::asio::const_buffer>& tx_buffers();
     std::vector<boost::asio::mutable_buffer>& rx_buffers();
@@ -98,8 +97,12 @@ auto socket::async_write_some( const ConstBufferSequence& bufs
              , boost::asio::buffer_sequence_end(bufs)
              , std::back_inserter(tx_buffers()));
 
-    boost::asio::async_completion<CompletionToken, write_signature> c(token);
-    do_write(std::move(c.completion_handler));
+    boost::asio::async_completion
+        < CompletionToken
+        , void(boost::system::error_code, size_t)
+        > c(token);
+
+    do_write(std::make_shared<handler>(std::move(c.completion_handler)));
 
     return c.result.get();
 }
@@ -115,8 +118,12 @@ auto socket::async_read_some( const MutableBufferSequence& bufs
              , boost::asio::buffer_sequence_end(bufs)
              , std::back_inserter(rx_buffers()));
 
-    boost::asio::async_completion<CompletionToken, read_signature> c(token);
-    do_read(std::move(c.completion_handler));
+    boost::asio::async_completion
+        < CompletionToken
+        , void(boost::system::error_code, size_t)
+        > c(token);
+
+    do_read(std::make_shared<handler>(std::move(c.completion_handler)));
 
     return c.result.get();
 }
