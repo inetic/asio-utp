@@ -56,10 +56,10 @@ private:
 
     accept_hook_type _accept_hook;
 
-    void do_write(handler<size_t>&&);
-    void do_read(handler<size_t>&&);
-    void do_connect(const endpoint_type&, handler<>&&);
-    void do_accept(handler<>&&);
+    void do_write(handler<size_t>);
+    void do_read(handler<size_t>);
+    void do_connect(const endpoint_type&, handler<>);
+    void do_accept(handler<>);
 
     void close_with_error(const boost::system::error_code&);
 

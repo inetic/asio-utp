@@ -81,7 +81,7 @@ void socket_impl::on_accept(void* usocket)
 }
 
 
-void socket_impl::do_write(handler<size_t>&& h)
+void socket_impl::do_write(handler<size_t> h)
 {
     assert(!_send_handler);
     assert(_utp_socket);
@@ -125,7 +125,7 @@ void socket_impl::on_writable()
 }
 
 
-void socket_impl::do_read(handler<size_t>&& h)
+void socket_impl::do_read(handler<size_t> h)
 {
     assert(!_recv_handler);
 
@@ -163,7 +163,7 @@ void socket_impl::do_read(handler<size_t>&& h)
 }
 
 
-void socket_impl::do_accept(handler<>&& h)
+void socket_impl::do_accept(handler<> h)
 {
     // TODO: Which error code to call `h` with?
     assert(_context);
@@ -245,7 +245,7 @@ socket_impl::~socket_impl()
 }
 
 
-void socket_impl::do_connect(const endpoint_type& ep, handler<>&& h)
+void socket_impl::do_connect(const endpoint_type& ep, handler<> h)
 {
     assert(!_utp_socket);
 
