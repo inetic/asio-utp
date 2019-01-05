@@ -41,7 +41,7 @@ private:
 
 public:
     handler() = default;
-    handler(const handler&) = default;
+    handler(const handler&) = delete;
     handler(handler&& h) = default;
     handler& operator=(handler&& h) = default;
 
@@ -58,7 +58,7 @@ public:
         using impl_t = impl<decltype(e), decltype(a), Func>;
 
         // XXX: allocate `impl` using `a`
-        _impl = std::make_shared<impl_t>( std::move(e)
+        _impl = std::make_unique<impl_t>( std::move(e)
                                         , std::move(a)
                                         , std::forward<Func>(func));
     }
@@ -76,7 +76,7 @@ public:
     operator bool() const { return bool(_impl); }
 
 private:
-    std::shared_ptr<base> _impl;
+    std::unique_ptr<base> _impl;
 };
 
 } // namespace
