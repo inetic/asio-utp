@@ -152,7 +152,6 @@ void socket_impl::do_read(handler<size_t>&& h)
 
         if (r >= buf.size() - buf.consumed) {
             r -= buf.size() - buf.consumed;
-            // TODO: This is inefficient.
             _rx_buffer_queue.erase(_rx_buffer_queue.begin());
         } else {
             buf.consumed += r;

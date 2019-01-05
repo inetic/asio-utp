@@ -45,14 +45,8 @@ private:
 public:
     handler() = default;
     handler(const handler&) = default;
-
-    handler(handler&& h) : _impl(std::move(h._impl)) { }
-
-    handler& operator=(handler&& h)
-    {
-        _impl = std::move(h._impl);
-        return *this;
-    }
+    handler(handler&& h) = default;
+    handler& operator=(handler&& h) = default;
 
     template<class Executor, class Func> handler(Executor&& exec, Func&& func)
     {
