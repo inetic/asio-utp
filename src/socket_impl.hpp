@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/intrusive/list.hpp>
+#include "utp/detail/handler.hpp"
 
 namespace utp {
     
@@ -10,19 +11,6 @@ class socket;
 class socket_impl : public std::enable_shared_from_this<socket_impl> {
 public:
     using endpoint_type = boost::asio::ip::udp::endpoint;
-
-private:
-    using connect_handler_type
-        = std::function<void(const boost::system::error_code&)>;
-
-    using accept_handler_type
-        = std::function<void(const boost::system::error_code&)>;
-
-    using send_handler_type
-        = std::function<void(const boost::system::error_code&, size_t)>;
-
-    using recv_handler_type
-        = std::function<void(const boost::system::error_code&, size_t)>;
 
 private:
     using accept_hook_type
@@ -69,10 +57,10 @@ private:
 
     accept_hook_type _accept_hook;
 
-    void do_send(send_handler_type);
-    void do_receive(recv_handler_type&&);
-    void do_connect(const endpoint_type&, connect_handler_type&&);
-    void do_accept(accept_handler_type&&);
+    void do_write(handler<size_t>&&);
+    void do_read(handler<size_t>&&);
+    void do_connect(const endpoint_type&, handler<>&&);
+    void do_accept(handler<>&&);
 
     void close_with_error(const boost::system::error_code&);
 
@@ -84,10 +72,10 @@ private:
 
     std::shared_ptr<context> _context;
 
-    connect_handler_type _connect_handler;
-    accept_handler_type  _accept_handler;
-    send_handler_type    _send_handler;
-    recv_handler_type    _recv_handler;
+    handler<> _connect_handler;
+    handler<> _accept_handler;
+    handler<size_t> _send_handler;
+    handler<size_t> _recv_handler;
 
     size_t _bytes_sent = 0;
     std::vector<boost::asio::const_buffer> _tx_buffers;

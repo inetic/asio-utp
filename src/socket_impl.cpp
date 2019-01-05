@@ -84,16 +84,12 @@ void socket_impl::on_accept(void* usocket)
 }
 
 
-void socket_impl::do_send(send_handler_type h)
+void socket_impl::do_write(handler<size_t>&& h)
 {
     assert(!_send_handler);
     assert(_utp_socket);
 
-    _send_handler = [ w = asio::io_context::work(_ioc)
-                    , h = std::move(h)]
-                    (const sys::error_code& ec, size_t size) {
-                        h(ec, size);
-                    };
+    _send_handler = move(h);
 
     bool still_writable = true;
 
@@ -131,23 +127,21 @@ void socket_impl::do_send(send_handler_type h)
 void socket_impl::on_writable()
 {
     if (!_send_handler) return;
-    do_send(move(_send_handler));
+    do_write(move(_send_handler));
 }
 
 
-void socket_impl::do_receive(recv_handler_type&& h)
+void socket_impl::do_read(handler<size_t>&& h)
 {
     assert(!_recv_handler);
 
     if (!_context) {
-        return _ioc.post([h = move(h)] { h(asio::error::bad_descriptor, 0); });
+        return _ioc.post([h = move(h)] {
+                    h(asio::error::bad_descriptor, 0);
+                });
     }
 
-    _recv_handler = [ w = asio::io_context::work(_ioc)
-                    , h = std::move(h)]
-                    (const sys::error_code& ec, size_t size) {
-                        h(ec, size);
-                    };
+    _recv_handler = std::move(h);
 
     // If we haven't yet received anything, we wait. But note that if we did,
     // but the _rx_buffers is empty, then we still post the callback with zero
@@ -178,17 +172,13 @@ void socket_impl::do_receive(recv_handler_type&& h)
 }
 
 
-void socket_impl::do_accept(accept_handler_type&& h)
+void socket_impl::do_accept(handler<>&& h)
 {
     // TODO: Which error code to call `h` with?
     assert(_context);
     assert(!_accept_handler);
-
     _context->_accepting_sockets.push_back(*this);
-
-    _accept_handler = [ w = asio::io_context::work(_ioc)
-                      , h = move(h)
-                      ] (const sys::error_code& ec) { h(ec); };
+    _accept_handler = move(h);
 }
 
 
@@ -264,7 +254,7 @@ socket_impl::~socket_impl()
 }
 
 
-void socket_impl::do_connect(const endpoint_type& ep, connect_handler_type&& h)
+void socket_impl::do_connect(const endpoint_type& ep, handler<>&& h)
 {
     assert(!_utp_socket);
 

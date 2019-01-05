@@ -36,24 +36,24 @@ socket::~socket()
     if (is_open()) _socket_impl->close();
 }
 
-void socket::do_connect(const endpoint_type& ep, function<connect_signature> h)
+void socket::do_connect(const endpoint_type& ep, handler<>&& h)
 {
     _socket_impl->do_connect(ep, std::move(move(h)));
 }
 
-void socket::do_accept(function<accept_signature> h)
+void socket::do_accept(handler<>&& h)
 {
     _socket_impl->do_accept(std::move(h));
 }
 
-void socket::do_write(function<write_signature> h)
+void socket::do_write(handler<size_t>&& h)
 {
-    _socket_impl->do_send(std::move(h));
+    _socket_impl->do_write(std::move(h));
 }
 
-void socket::do_read(std::function<read_signature> h)
+void socket::do_read(handler<size_t>&& h)
 {
-    _socket_impl->do_receive(std::move(h));
+    _socket_impl->do_read(std::move(h));
 }
 
 std::vector<boost::asio::const_buffer>& socket::tx_buffers()

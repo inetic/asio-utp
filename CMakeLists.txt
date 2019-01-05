@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS_DEBUG    "${CMAKE_CXX_FLAGS_DEBUG}           ${SANITIZER_FLA
 set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_STATIC_LINKER_FLAGS_DEBUG} ${SANITIZER_FLAGS}")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall ${CMAKE_CXX_FLAGS_DEBUG}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -Wall ${CMAKE_CXX_FLAGS_DEBUG}")
 endif()
 
 #---------------------------------------------------------------------
@@ -52,6 +52,10 @@ target_link_libraries(ucat asio_utp ${Boost_LIBRARIES} Threads::Threads)
 target_include_directories(ucat PUBLIC
     "${CXX_INCLUDE_DIR}"
     "${Boost_INCLUDE_DIR}")
+
+#---------------------------------------------------------------------
+# Boost.Beast example
+add_subdirectory(example/http)
 
 #---------------------------------------------------------------------
 # Tests
