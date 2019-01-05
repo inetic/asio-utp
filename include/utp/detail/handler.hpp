@@ -10,22 +10,25 @@ class handler {
 private:
     using error_code = boost::system::error_code;
 
-    typedef void(*exec_type)(void*, const error_code&, Args...);
-    typedef void(*destruct_type)(void*);
-
     struct base {
-        virtual void exec(const error_code&, Args...) = 0;
+        virtual void operator()(const error_code&, Args...) = 0;
         virtual ~base() {};
     };
 
-    template<class Func>
+    template<class Executor, class Func>
     struct impl final : public base {
+        Executor e;
         Func f;
+        boost::asio::executor_work_guard<Executor> w;
 
-        template<class F>
-        impl(F&& f) : f(std::forward<F>(f)) {}
+        template<class E, class F>
+        impl(E&& e, F&& f)
+            : e(std::forward<E>(e))
+            , f(std::forward<F>(f))
+            , w(this->e)
+        {}
 
-        void exec(const error_code& ec, Args... args) override
+        void operator()(const error_code& ec, Args... args) override
         {
             f(ec, args...);
         }
@@ -43,19 +46,22 @@ public:
         return *this;
     }
 
-    template<class Func> handler(Func&& func)
+    template<class Executor, class Func> handler(Executor&& exec, Func&& func)
     {
-        _impl.reset(new impl<Func>(std::forward<Func>(func)));
+        auto e = boost::asio::get_associated_executor(func, exec);
+
+        _impl.reset(new impl<decltype(e), Func>( std::move(e)
+                                               , std::forward<Func>(func)));
     }
 
     void operator()(const error_code& ec, Args... args)
     {
-        _impl->exec(ec, args...);
+        (*_impl)(ec, args...);
     }
 
     void operator()(const error_code& ec, Args... args) const
     {
-        _impl->exec(ec, args...);
+        (*_impl)(ec, args...);
     }
 
     operator bool() const { return bool(_impl); }

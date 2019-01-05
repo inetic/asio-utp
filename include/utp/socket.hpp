@@ -93,6 +93,7 @@ auto socket::async_write_some( const ConstBufferSequence& bufs
                              , CompletionToken&& token)
 {
     tx_buffers().clear();
+
     std::copy( boost::asio::buffer_sequence_begin(bufs)
              , boost::asio::buffer_sequence_end(bufs)
              , std::back_inserter(tx_buffers()));
@@ -102,7 +103,7 @@ auto socket::async_write_some( const ConstBufferSequence& bufs
         , void(boost::system::error_code, size_t)
         > c(token);
 
-    do_write(std::move(c.completion_handler));
+    do_write(handler<size_t>(get_executor(), std::move(c.completion_handler)));
 
     return c.result.get();
 }
@@ -114,6 +115,7 @@ auto socket::async_read_some( const MutableBufferSequence& bufs
                             , CompletionToken&& token)
 {
     rx_buffers().clear();
+
     std::copy( boost::asio::buffer_sequence_begin(bufs)
              , boost::asio::buffer_sequence_end(bufs)
              , std::back_inserter(rx_buffers()));
@@ -123,7 +125,7 @@ auto socket::async_read_some( const MutableBufferSequence& bufs
         , void(boost::system::error_code, size_t)
         > c(token);
 
-    do_read(std::move(c.completion_handler));
+    do_read(handler<size_t>(get_executor(), std::move(c.completion_handler)));
 
     return c.result.get();
 }

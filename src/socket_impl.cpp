@@ -89,12 +89,7 @@ void socket_impl::do_write(handler<size_t>&& h)
     assert(!_send_handler);
     assert(_utp_socket);
 
-    _send_handler = handler<size_t>(
-                    [ w = asio::io_context::work(_ioc)
-                    , h = std::move(h)]
-                    (const sys::error_code& ec, size_t size) {
-                        h(ec, size);
-                    });
+    _send_handler = move(h);
 
     bool still_writable = true;
 
@@ -146,12 +141,7 @@ void socket_impl::do_read(handler<size_t>&& h)
                 });
     }
 
-    _recv_handler = handler<size_t>(
-                    [ w = asio::io_context::work(_ioc)
-                    , h = std::move(h)]
-                    (const sys::error_code& ec, size_t size) {
-                        h(ec, size);
-                    });
+    _recv_handler = std::move(h);
 
     // If we haven't yet received anything, we wait. But note that if we did,
     // but the _rx_buffers is empty, then we still post the callback with zero
