@@ -23,7 +23,7 @@ void socket_impl::bind(const endpoint_type& ep)
 
 void socket_impl::on_connect()
 {
-    _ioc.post([h = move(_connect_handler)] { h(sys::error_code()); });
+    _connect_handler.post_exec(sys::error_code());
 }
 
 
@@ -65,9 +65,7 @@ void socket_impl::on_receive(const unsigned char* buf, size_t size)
         utp_read_drained((utp_socket*) _utp_socket);
     }
 
-    _ioc.post([total, h = move(_recv_handler)] {
-        h(sys::error_code(), total);
-    });
+    _recv_handler.post_exec(sys::error_code(), total);
 }
 
 
@@ -115,10 +113,7 @@ void socket_impl::do_write(handler<size_t>&& h)
     }
 
     if (still_writable) {
-        _ioc.post([h = move(_send_handler), c = _bytes_sent] {
-                h(sys::error_code(), c);
-            });
-
+        _send_handler.post_exec(sys::error_code(), _bytes_sent);
         _bytes_sent = 0;
     }
 }
@@ -136,9 +131,7 @@ void socket_impl::do_read(handler<size_t>&& h)
     assert(!_recv_handler);
 
     if (!_context) {
-        return _ioc.post([h = move(h)] {
-                    h(asio::error::bad_descriptor, 0);
-                });
+        return h.post_exec(asio::error::bad_descriptor, 0);
     }
 
     _recv_handler = std::move(h);
@@ -168,7 +161,7 @@ void socket_impl::do_read(handler<size_t>&& h)
         }
     }
 
-    _ioc.post([s, h = move(_recv_handler)] { h(sys::error_code(), s); });
+    _recv_handler.post_exec(sys::error_code(), s);
 }
 
 
@@ -229,15 +222,15 @@ void socket_impl::close_with_error(const sys::error_code& ec)
     }
 
     if (_accept_handler) {
-        _ioc.post([h = move(_accept_handler), ec] { h(ec); });
+        _accept_handler.post_exec(ec);
     }
 
     if (_connect_handler) {
-        _ioc.post([h = move(_connect_handler), ec] { h(ec); });
+        _connect_handler.post_exec(ec);
     }
 
     if (_recv_handler) {
-        _ioc.post([h = move(_recv_handler), ec] { h(ec, 0); });
+        _recv_handler.post_exec(ec, 0);
     }
 }
 

@@ -83,7 +83,8 @@ public:
     }
 
     void post_exec(const error_code& ec, Args... args) {
-        _impl->post_exec(ec, args...);
+        auto i = std::move(_impl);
+        i->post_exec(ec, args...);
     }
 
     operator bool() const { return bool(_impl); }
