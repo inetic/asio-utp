@@ -36,12 +36,12 @@ socket::~socket()
     if (is_open()) _socket_impl->close();
 }
 
-void socket::do_connect(const endpoint_type& ep, function<connect_signature> h)
+void socket::do_connect(const endpoint_type& ep, handler<>&& h)
 {
     _socket_impl->do_connect(ep, std::move(move(h)));
 }
 
-void socket::do_accept(function<accept_signature> h)
+void socket::do_accept(handler<>&& h)
 {
     _socket_impl->do_accept(std::move(h));
 }

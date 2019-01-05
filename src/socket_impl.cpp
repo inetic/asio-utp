@@ -172,17 +172,13 @@ void socket_impl::do_read(handler<size_t>&& h)
 }
 
 
-void socket_impl::do_accept(accept_handler_type&& h)
+void socket_impl::do_accept(handler<>&& h)
 {
     // TODO: Which error code to call `h` with?
     assert(_context);
     assert(!_accept_handler);
-
     _context->_accepting_sockets.push_back(*this);
-
-    _accept_handler = [ w = asio::io_context::work(_ioc)
-                      , h = move(h)
-                      ] (const sys::error_code& ec) { h(ec); };
+    _accept_handler = move(h);
 }
 
 
@@ -258,7 +254,7 @@ socket_impl::~socket_impl()
 }
 
 
-void socket_impl::do_connect(const endpoint_type& ep, connect_handler_type&& h)
+void socket_impl::do_connect(const endpoint_type& ep, handler<>&& h)
 {
     assert(!_utp_socket);
 

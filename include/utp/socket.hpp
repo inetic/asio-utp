@@ -52,11 +52,8 @@ public:
     ~socket();
 
 private:
-    typedef void(connect_signature)(boost::system::error_code);
-    typedef void(accept_signature)(boost::system::error_code);
-
-    void do_connect(const endpoint_type&, std::function<connect_signature>);
-    void do_accept (std::function<accept_signature>);
+    void do_connect(const endpoint_type&, handler<>&&);
+    void do_accept (handler<>&&);
     void do_write  (handler<size_t>&&);
     void do_read   (handler<size_t>&&);
 
@@ -72,8 +69,11 @@ template<typename CompletionToken>
 inline
 void socket::async_connect(const endpoint_type& ep, CompletionToken&& token)
 {
-    boost::asio::async_completion<CompletionToken, connect_signature> c(token);
-    do_connect(ep, std::move(c.completion_handler));
+    boost::asio::async_completion
+        <CompletionToken, void(boost::system::error_code)> c(token);
+
+    do_connect(ep, {get_executor(), std::move(c.completion_handler)});
+
     return c.result.get();
 }
 
@@ -81,8 +81,11 @@ template<typename CompletionToken>
 inline
 void socket::async_accept(CompletionToken&& token)
 {
-    boost::asio::async_completion<CompletionToken, accept_signature> c(token);
-    do_accept(std::move(c.completion_handler));
+    boost::asio::async_completion
+        <CompletionToken, void(boost::system::error_code)> c(token);
+
+    do_accept({get_executor(), std::move(c.completion_handler)});
+
     return c.result.get();
 }
 
@@ -103,7 +106,7 @@ auto socket::async_write_some( const ConstBufferSequence& bufs
         , void(boost::system::error_code, size_t)
         > c(token);
 
-    do_write(handler<size_t>(get_executor(), std::move(c.completion_handler)));
+    do_write({get_executor(), std::move(c.completion_handler)});
 
     return c.result.get();
 }
@@ -125,7 +128,7 @@ auto socket::async_read_some( const MutableBufferSequence& bufs
         , void(boost::system::error_code, size_t)
         > c(token);
 
-    do_read(handler<size_t>(get_executor(), std::move(c.completion_handler)));
+    do_read({get_executor(), std::move(c.completion_handler)});
 
     return c.result.get();
 }

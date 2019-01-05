@@ -13,13 +13,6 @@ public:
     using endpoint_type = boost::asio::ip::udp::endpoint;
 
 private:
-    using connect_handler_type
-        = std::function<void(const boost::system::error_code&)>;
-
-    using accept_handler_type
-        = std::function<void(const boost::system::error_code&)>;
-
-private:
     using accept_hook_type
         = boost::intrusive::list_base_hook
               <boost::intrusive::link_mode
@@ -66,8 +59,8 @@ private:
 
     void do_write(handler<size_t>&&);
     void do_read(handler<size_t>&&);
-    void do_connect(const endpoint_type&, connect_handler_type&&);
-    void do_accept(accept_handler_type&&);
+    void do_connect(const endpoint_type&, handler<>&&);
+    void do_accept(handler<>&&);
 
     void close_with_error(const boost::system::error_code&);
 
@@ -79,8 +72,8 @@ private:
 
     std::shared_ptr<context> _context;
 
-    connect_handler_type _connect_handler;
-    accept_handler_type  _accept_handler;
+    handler<> _connect_handler;
+    handler<> _accept_handler;
     handler<size_t> _send_handler;
     handler<size_t> _recv_handler;
 
