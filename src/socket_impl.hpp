@@ -64,8 +64,8 @@ private:
 
     accept_hook_type _accept_hook;
 
-    void do_write(std::shared_ptr<handler<size_t>>&&);
-    void do_read(std::shared_ptr<handler<size_t>>&&);
+    void do_write(handler<size_t>&&);
+    void do_read(handler<size_t>&&);
     void do_connect(const endpoint_type&, connect_handler_type&&);
     void do_accept(accept_handler_type&&);
 
@@ -81,8 +81,8 @@ private:
 
     connect_handler_type _connect_handler;
     accept_handler_type  _accept_handler;
-    std::shared_ptr<handler<size_t>> _send_handler;
-    std::shared_ptr<handler<size_t>> _recv_handler;
+    handler<size_t> _send_handler;
+    handler<size_t> _recv_handler;
 
     size_t _bytes_sent = 0;
     std::vector<boost::asio::const_buffer> _tx_buffers;

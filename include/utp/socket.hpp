@@ -57,8 +57,8 @@ private:
 
     void do_connect(const endpoint_type&, std::function<connect_signature>);
     void do_accept (std::function<accept_signature>);
-    void do_write  (std::shared_ptr<handler<size_t>>&&);
-    void do_read   (std::shared_ptr<handler<size_t>>&&);
+    void do_write  (handler<size_t>&&);
+    void do_read   (handler<size_t>&&);
 
     std::vector<boost::asio::const_buffer>& tx_buffers();
     std::vector<boost::asio::mutable_buffer>& rx_buffers();
@@ -102,7 +102,7 @@ auto socket::async_write_some( const ConstBufferSequence& bufs
         , void(boost::system::error_code, size_t)
         > c(token);
 
-    do_write(std::make_shared<handler<size_t>>(std::move(c.completion_handler)));
+    do_write(std::move(c.completion_handler));
 
     return c.result.get();
 }
@@ -123,7 +123,7 @@ auto socket::async_read_some( const MutableBufferSequence& bufs
         , void(boost::system::error_code, size_t)
         > c(token);
 
-    do_read(std::make_shared<handler<size_t>>(std::move(c.completion_handler)));
+    do_read(std::move(c.completion_handler));
 
     return c.result.get();
 }

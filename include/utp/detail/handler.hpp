@@ -33,10 +33,15 @@ private:
 
 public:
     handler() = default;
-
-    handler(const handler&) = delete;
+    handler(const handler&) = default;
 
     handler(handler&& h) : _impl(std::move(h._impl)) { }
+
+    handler& operator=(handler&& h)
+    {
+        _impl = std::move(h._impl);
+        return *this;
+    }
 
     template<class Func> handler(Func&& func)
     {
@@ -53,10 +58,10 @@ public:
         _impl->exec(ec, args...);
     }
 
-    operator bool() const { return _impl; }
+    operator bool() const { return bool(_impl); }
 
 private:
-    std::unique_ptr<base> _impl;
+    std::shared_ptr<base> _impl;
 };
 
 } // namespace

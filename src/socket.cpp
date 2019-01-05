@@ -46,12 +46,12 @@ void socket::do_accept(function<accept_signature> h)
     _socket_impl->do_accept(std::move(h));
 }
 
-void socket::do_write(shared_ptr<handler<size_t>>&& h)
+void socket::do_write(handler<size_t>&& h)
 {
     _socket_impl->do_write(std::move(h));
 }
 
-void socket::do_read(shared_ptr<handler<size_t>>&& h)
+void socket::do_read(handler<size_t>&& h)
 {
     _socket_impl->do_read(std::move(h));
 }
