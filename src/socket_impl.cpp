@@ -84,12 +84,12 @@ void socket_impl::on_accept(void* usocket)
 }
 
 
-void socket_impl::do_write(shared_ptr<handler>&& h)
+void socket_impl::do_write(shared_ptr<handler<size_t>>&& h)
 {
     assert(!_send_handler);
     assert(_utp_socket);
 
-    _send_handler = make_shared<handler>(
+    _send_handler = make_shared<handler<size_t>>(
                     [ w = asio::io_context::work(_ioc)
                     , h = std::move(h)]
                     (const sys::error_code& ec, size_t size) {
@@ -136,7 +136,7 @@ void socket_impl::on_writable()
 }
 
 
-void socket_impl::do_read(shared_ptr<handler>&& h)
+void socket_impl::do_read(shared_ptr<handler<size_t>>&& h)
 {
     assert(!_recv_handler);
 
@@ -146,7 +146,7 @@ void socket_impl::do_read(shared_ptr<handler>&& h)
                 });
     }
 
-    _recv_handler = make_shared<handler>(
+    _recv_handler = make_shared<handler<size_t>>(
                     [ w = asio::io_context::work(_ioc)
                     , h = std::move(h)]
                     (const sys::error_code& ec, size_t size) {

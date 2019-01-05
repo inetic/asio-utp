@@ -5,18 +5,19 @@
 
 namespace utp {
 
+template<typename... Args>
 class handler {
 private:
     using error_code = boost::system::error_code;
 
-    typedef void(*exec_type)(void*, const error_code&, size_t);
+    typedef void(*exec_type)(void*, const error_code&, Args...);
     typedef void(*destruct_type)(void*);
 
     template<class Func>
     struct operation {
-        static void exec(void* data, const error_code& ec, size_t size)
+        static void exec(void* data, const error_code& ec, Args... args)
         {
-            (*reinterpret_cast<Func*>(data))(ec, size);
+            (*reinterpret_cast<Func*>(data))(ec, args...);
         }
 
         static void destruct(void* data)
@@ -61,14 +62,14 @@ public:
         new (_func_data.data()) Func(std::forward<Func>(func));
     }
 
-    void operator()(const error_code& ec, size_t size)
+    void operator()(const error_code& ec, Args... args)
     {
-        _exec(_func_data.data(), ec, size);
+        _exec(_func_data.data(), ec, args...);
     }
 
-    void operator()(const error_code& ec, size_t size) const
+    void operator()(const error_code& ec, Args... args) const
     {
-        _exec((void*) _func_data.data(), ec, size);
+        _exec((void*) _func_data.data(), ec, args...);
     }
 
     operator bool() const {
