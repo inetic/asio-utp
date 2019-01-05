@@ -23,7 +23,7 @@ void socket_impl::bind(const endpoint_type& ep)
 
 void socket_impl::on_connect()
 {
-    _connect_handler.post_exec(sys::error_code());
+    _connect_handler.post(sys::error_code());
 }
 
 
@@ -65,7 +65,7 @@ void socket_impl::on_receive(const unsigned char* buf, size_t size)
         utp_read_drained((utp_socket*) _utp_socket);
     }
 
-    _recv_handler.post_exec(sys::error_code(), total);
+    _recv_handler.post(sys::error_code(), total);
 }
 
 
@@ -113,7 +113,7 @@ void socket_impl::do_write(handler<size_t>&& h)
     }
 
     if (still_writable) {
-        _send_handler.post_exec(sys::error_code(), _bytes_sent);
+        _send_handler.post(sys::error_code(), _bytes_sent);
         _bytes_sent = 0;
     }
 }
@@ -131,7 +131,7 @@ void socket_impl::do_read(handler<size_t>&& h)
     assert(!_recv_handler);
 
     if (!_context) {
-        return h.post_exec(asio::error::bad_descriptor, 0);
+        return h.post(asio::error::bad_descriptor, 0);
     }
 
     _recv_handler = std::move(h);
@@ -161,7 +161,7 @@ void socket_impl::do_read(handler<size_t>&& h)
         }
     }
 
-    _recv_handler.post_exec(sys::error_code(), s);
+    _recv_handler.post(sys::error_code(), s);
 }
 
 
@@ -222,15 +222,15 @@ void socket_impl::close_with_error(const sys::error_code& ec)
     }
 
     if (_accept_handler) {
-        _accept_handler.post_exec(ec);
+        _accept_handler.post(ec);
     }
 
     if (_connect_handler) {
-        _connect_handler.post_exec(ec);
+        _connect_handler.post(ec);
     }
 
     if (_recv_handler) {
-        _recv_handler.post_exec(ec, 0);
+        _recv_handler.post(ec, 0);
     }
 }
 

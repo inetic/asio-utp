@@ -12,7 +12,7 @@ private:
 
     struct base {
         virtual void operator()(const error_code&, Args...) = 0;
-        virtual void post_exec(const error_code&, Args...) = 0;
+        virtual void post(const error_code&, Args...) = 0;
         virtual ~base() {};
     };
 
@@ -36,7 +36,7 @@ private:
             f(ec, args...);
         }
 
-        void post_exec(const error_code& ec, Args... args) override
+        void post(const error_code& ec, Args... args) override
         {
             e.post(std::bind(std::move(f), ec, args...), a);
         }
@@ -82,9 +82,9 @@ public:
         (*_impl)(ec, args...);
     }
 
-    void post_exec(const error_code& ec, Args... args) {
+    void post(const error_code& ec, Args... args) {
         auto i = std::move(_impl);
-        i->post_exec(ec, args...);
+        i->post(ec, args...);
     }
 
     operator bool() const { return bool(_impl); }
