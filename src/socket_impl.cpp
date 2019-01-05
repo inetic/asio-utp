@@ -77,8 +77,7 @@ void socket_impl::on_accept(void* usocket)
     utp_set_userdata((utp_socket*) usocket, this);
 
     _utp_socket = usocket;
-    auto h = move(_accept_handler);
-    h(sys::error_code());
+    _accept_handler.dispatch(sys::error_code());
 }
 
 

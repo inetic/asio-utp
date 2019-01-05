@@ -11,8 +11,8 @@ private:
     using error_code = boost::system::error_code;
 
     struct base {
-        virtual void operator()(const error_code&, Args...) = 0;
         virtual void post(const error_code&, Args...) = 0;
+        virtual void dispatch(const error_code&, Args...) = 0;
         virtual ~base() {};
     };
 
@@ -31,14 +31,14 @@ private:
             , w(this->e)
         {}
 
-        void operator()(const error_code& ec, Args... args) override
-        {
-            f(ec, args...);
-        }
-
         void post(const error_code& ec, Args... args) override
         {
             e.post(std::bind(std::move(f), ec, args...), a);
+        }
+
+        void dispatch(const error_code& ec, Args... args) override
+        {
+            e.dispatch(std::bind(std::move(f), ec, args...), a);
         }
     };
 
@@ -72,19 +72,14 @@ public:
                                         , std::forward<Func>(func));
     }
 
-    void operator()(const error_code& ec, Args... args)
-    {
-        (*_impl)(ec, args...);
-    }
-
-    void operator()(const error_code& ec, Args... args) const
-    {
-        (*_impl)(ec, args...);
-    }
-
     void post(const error_code& ec, Args... args) {
         auto i = std::move(_impl);
         i->post(ec, args...);
+    }
+
+    void dispatch(const error_code& ec, Args... args) {
+        auto i = std::move(_impl);
+        i->dispatch(ec, args...);
     }
 
     operator bool() const { return bool(_impl); }

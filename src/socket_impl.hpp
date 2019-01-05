@@ -12,12 +12,6 @@ class socket_impl : public std::enable_shared_from_this<socket_impl> {
 public:
     using endpoint_type = boost::asio::ip::udp::endpoint;
 
-private:
-    using accept_hook_type
-        = boost::intrusive::list_base_hook
-              <boost::intrusive::link_mode
-                  <boost::intrusive::auto_unlink>>;
-
 public:
     socket_impl(const socket_impl&) = delete;
     socket_impl& operator=(const socket_impl&) = delete;
@@ -43,6 +37,11 @@ public:
     ~socket_impl();
 
 private:
+    using accept_hook_type
+        = boost::intrusive::list_base_hook
+              <boost::intrusive::link_mode
+                  <boost::intrusive::auto_unlink>>;
+
     friend class ::utp::context;
     friend class ::utp::socket;
 
