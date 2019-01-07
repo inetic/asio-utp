@@ -21,6 +21,26 @@ callbacks, futures and coroutines as completion tokens.
 * Low latency
 * Yields to TCP
 
+## Clone
+
+`asio-utp` git repository contains `libutp` (the uTorrents uTP library written in C)
+as a submodule. Thus one has to clone it recursively:
+
+```
+git clone --recursive git@github.com:inetic/asio-utp.git
+```
+
+## Build
+
+```
+cd asio-utp
+mkdir build
+cd build
+cmake .. -DBOOST_ROOT=<PATH_TO_BOOST_DIRECTORY>
+make -j$(nproc)
+```
+
+For more detailed instructions, have a look at the `.circleci/config.yml` file.
 
 ## Caveats
 
@@ -34,7 +54,6 @@ callbacks, futures and coroutines as completion tokens.
   used for preserving holes in NATs (not to indicate whether the other end
   is still alive).
 
-
 ## TODO
 
 * Add API to handle non-uTP packets
@@ -42,24 +61,6 @@ callbacks, futures and coroutines as completion tokens.
 * Thread safety
 * The [API] is pretty minimal and mostly identical to the one in `boost::ip::tcp::socket`, but some
   documentation wouls still be in place
-
-## Clone
-
-`asio-utp` git repository contains `libutp` (the uTorrents uTP library written in C)
-as a submodule. Thus one has to clone it recursively:
-
-```
-git clone --recursive git@github.com:inetic/asio-utp.git
-```
-
-## Build
-
-```
-cmake .. -DBOOST_ROOT=<PATH_TO_BOOST_DIRECTORY>
-make -j$(nproc)
-```
-
-For more detailed instructions, have a look at the `.circleci/config.yml` file.
 
 
 [`AsyncReadStream`]:  https://www.boost.org/doc/libs/1_69_0/doc/html/boost_asio/reference/AsyncReadStream.html
