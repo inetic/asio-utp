@@ -18,6 +18,7 @@ using namespace std;
 namespace asio = boost::asio;
 namespace ip   = asio::ip;
 namespace sys  = boost::system;
+namespace utp  = asio_utp;
 
 struct defer {
     std::function<void()> f;

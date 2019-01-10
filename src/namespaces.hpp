@@ -3,9 +3,9 @@
 namespace boost { namespace asio {} }
 namespace boost { namespace system {} }
 
-namespace utp {
+namespace asio_utp {
 
 namespace asio = boost::asio;
 namespace sys  = boost::system;
 
-} // utp namespace
+} // namespace

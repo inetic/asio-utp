@@ -14,6 +14,7 @@
 #include <utp.hpp>
 
 using namespace std;
+namespace utp = asio_utp;
 namespace asio = boost::asio;
 namespace rnd = boost::random;
 using asio::ip::tcp;

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace utp {
+namespace asio_utp {
 
 template<typename... Args>
 class handler {

@@ -2,9 +2,8 @@
 #include "namespaces.hpp"
 #include "socket_impl.hpp"
 
-
 using namespace std;
-using namespace utp;
+using namespace asio_utp;
 
 socket::socket(boost::asio::io_context& ioc, const endpoint_type& ep)
     : _ioc(&ioc)

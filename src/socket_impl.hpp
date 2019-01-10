@@ -3,7 +3,7 @@
 #include <boost/intrusive/list.hpp>
 #include "utp/detail/handler.hpp"
 
-namespace utp {
+namespace asio_utp {
     
 class context;
 class socket;
@@ -42,8 +42,8 @@ private:
               <boost::intrusive::link_mode
                   <boost::intrusive::auto_unlink>>;
 
-    friend class ::utp::context;
-    friend class ::utp::socket;
+    friend class ::asio_utp::context;
+    friend class ::asio_utp::socket;
 
     void on_connect();
     void on_writable();

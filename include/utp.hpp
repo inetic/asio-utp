@@ -2,6 +2,6 @@
 
 #include <utp/socket.hpp>
 
-namespace utp {
+namespace asio_utp {
 
-} // utp namespace
+} // namespace

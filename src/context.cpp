@@ -4,8 +4,8 @@
 
 #include <iostream>
 
-using namespace utp;
 using namespace std;
+using namespace asio_utp;
 
 struct context::ticker_type : public enable_shared_from_this<ticker_type> {
     bool _stopped = false;
@@ -96,7 +96,7 @@ uint64 context::callback_on_error(utp_callback_arguments*)
 
 uint64 context::callback_on_state_change(utp_callback_arguments* a)
 {
-    auto socket = (utp::socket_impl*) utp_get_userdata(a->socket);
+    auto socket = (socket_impl*) utp_get_userdata(a->socket);
 
     if (!socket) {
         // The utp::socket_impl has detached from this utp_socket
@@ -126,7 +126,7 @@ uint64 context::callback_on_state_change(utp_callback_arguments* a)
 
 uint64 context::callback_on_read(utp_callback_arguments* a)
 {
-    auto socket = (utp::socket_impl*) utp_get_userdata(a->socket);
+    auto socket = (socket_impl*) utp_get_userdata(a->socket);
     assert(socket);
     socket->on_receive(a->buf, a->len);
 

@@ -10,7 +10,7 @@
 #include <utp.h>
 #include <utp/socket.hpp>
 
-namespace utp {
+namespace asio_utp {
 
 class context : public std::enable_shared_from_this<context> {
 public:
@@ -34,7 +34,7 @@ public:
         get_or_create(asio::io_context&, const endpoint_type&);
 
 private:
-    friend class ::utp::socket_impl;
+    friend class ::asio_utp::socket_impl;
 
     void increment_use_count();
     void decrement_use_count();
