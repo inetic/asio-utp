@@ -35,10 +35,10 @@ struct context::ticker_type : public enable_shared_from_this<ticker_type> {
 };
 
 /* static */
-std::map<context::endpoint_type, std::shared_ptr<context>>&
+std::map<context::endpoint_type, std::weak_ptr<context>>&
 context::contexts()
 {
-    static std::map<endpoint_type, shared_ptr<context>> ctxs;
+    static std::map<endpoint_type, weak_ptr<context>> ctxs;
     return ctxs;
 }
 
@@ -50,7 +50,7 @@ context::get_or_create(asio::io_context& ioc, const endpoint_type& ep)
 
     auto i = ctxs.find(ep);
 
-    if (i != ctxs.end()) return i->second;
+    if (i != ctxs.end()) return i->second.lock();
 
     auto ctx = make_shared<context>(socket_type(ioc, ep));
     ctxs[ctx->udp_socket().local_endpoint()] = ctx;

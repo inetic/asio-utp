@@ -56,7 +56,7 @@ private:
     static uint64 callback_on_firewall(utp_callback_arguments*);
     static uint64 callback_on_accept(utp_callback_arguments*);
 
-    static std::map<endpoint_type, std::shared_ptr<context>>& contexts();
+    static std::map<endpoint_type, std::weak_ptr<context>>& contexts();
 
 private:
     socket_type _socket;
