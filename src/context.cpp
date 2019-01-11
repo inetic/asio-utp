@@ -38,24 +38,24 @@ struct context::ticker_type : public enable_shared_from_this<ticker_type> {
 std::map<context::endpoint_type, std::shared_ptr<context>>&
 context::contexts()
 {
-    static std::map<endpoint_type, shared_ptr<context>> loops;
-    return loops;
+    static std::map<endpoint_type, shared_ptr<context>> ctxs;
+    return ctxs;
 }
 
 /* static */
 std::shared_ptr<context>
 context::get_or_create(asio::io_context& ioc, const endpoint_type& ep)
 {
-    auto& loops = contexts();
+    auto& ctxs = contexts();
 
-    auto i = loops.find(ep);
+    auto i = ctxs.find(ep);
 
-    if (i != loops.end()) return i->second;
+    if (i != ctxs.end()) return i->second;
 
-    auto loop = make_shared<context>(socket_type(ioc, ep));
-    loops[loop->udp_socket().local_endpoint()] = loop;
+    auto ctx = make_shared<context>(socket_type(ioc, ep));
+    ctxs[ctx->udp_socket().local_endpoint()] = ctx;
 
-    return loop;
+    return ctx;
 }
 
 uint64 context::callback_log(utp_callback_arguments* a)
