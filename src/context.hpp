@@ -34,6 +34,9 @@ public:
         get_or_create(asio::io_context&, const endpoint_type&);
 
 private:
+    static void erase_context(endpoint_type);
+
+private:
     friend class ::asio_utp::socket_impl;
 
     void increment_use_count();
@@ -57,6 +60,7 @@ private:
 
 private:
     socket_type _socket;
+    endpoint_type _local_endpoint;
     utp_context* _utp_ctx;
     asio::ip::udp::endpoint _rx_endpoint;
     std::array<char, 4096> _rx_buffer;

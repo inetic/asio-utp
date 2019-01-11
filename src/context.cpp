@@ -58,6 +58,13 @@ context::get_or_create(asio::io_context& ioc, const endpoint_type& ep)
     return ctx;
 }
 
+/* static */
+void context::erase_context(endpoint_type ep)
+{
+    auto& ctxs = contexts();
+    ctxs.erase(ep);
+}
+
 uint64 context::callback_log(utp_callback_arguments* a)
 {
     cerr << "LOG: " << a->socket << " " << a->buf << endl;
@@ -160,6 +167,7 @@ uint64 context::callback_on_accept(utp_callback_arguments* a)
 
 context::context(asio::ip::udp::socket socket)
     : _socket(std::move(socket))
+    , _local_endpoint(_socket.local_endpoint())
     , _utp_ctx(utp_init(2 /* version */))
 {
     // TODO: Throw?
@@ -211,6 +219,8 @@ void context::stop()
 
     _ticker->stop();
     _ticker = nullptr;
+
+    erase_context(_local_endpoint);
 }
 
 void context::start_reading()
