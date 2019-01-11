@@ -8,7 +8,7 @@
 #include "socket_impl.hpp"
 
 #include <utp.h>
-#include <utp/socket.hpp>
+#include <asio_utp/socket.hpp>
 
 namespace asio_utp {
 
