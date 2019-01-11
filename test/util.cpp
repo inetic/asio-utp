@@ -4,7 +4,7 @@
 #include <util.hpp>
 #include <iostream>
 
-using namespace utp;
+using namespace asio_utp;
 namespace ip = boost::asio::ip;
 using udp = boost::asio::ip::udp;
 using namespace std;

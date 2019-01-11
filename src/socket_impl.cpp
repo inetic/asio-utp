@@ -1,11 +1,11 @@
-#include <utp/socket.hpp>
+#include <asio_utp/socket.hpp>
 #include "../context.hpp"
 #include "../util.hpp"
 
 #include <utp.h>
 
-using namespace utp;
 using namespace std;
+using namespace asio_utp;
 
 socket_impl::socket_impl(boost::asio::io_context& ioc)
     : _ioc(ioc)

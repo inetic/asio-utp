@@ -11,9 +11,10 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int.hpp>
 #include <boost/utility/string_view.hpp>
-#include <utp.hpp>
+#include <asio_utp.hpp>
 
 using namespace std;
+namespace utp = asio_utp;
 namespace asio = boost::asio;
 namespace rnd = boost::random;
 using asio::ip::tcp;

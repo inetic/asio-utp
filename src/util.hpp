@@ -3,7 +3,7 @@
 #include <boost/asio/ip/udp.hpp>
 #include "namespaces.hpp"
 
-namespace utp { namespace util {
+namespace asio_utp { namespace util {
 
 inline
 sockaddr to_sockaddr(const asio::ip::udp::endpoint& ep)

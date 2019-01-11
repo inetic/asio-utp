@@ -23,11 +23,12 @@
 #include <functional>
 #include <iostream>
 #include <string>
-#include <utp.hpp>
+#include <asio_utp.hpp>
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>
+namespace utp = asio_utp;
 using udp = boost::asio::ip::udp;
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 

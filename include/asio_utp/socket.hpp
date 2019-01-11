@@ -4,7 +4,7 @@
 #include <boost/asio/buffers_iterator.hpp>
 #include "detail/handler.hpp"
 
-namespace utp {
+namespace asio_utp {
 
 class socket_impl;
 

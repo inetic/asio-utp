@@ -5,7 +5,7 @@
 #include <iostream>
 #include <thread>
 
-#include <utp.hpp>
+#include <asio_utp.hpp>
 #include <namespaces.hpp>
 #include <boost/asio/spawn.hpp>
 
@@ -14,6 +14,7 @@ namespace asio = boost::asio;
 namespace ip = asio::ip;
 using udp = ip::udp;
 using namespace std;
+namespace utp = asio_utp;
 
 BOOST_AUTO_TEST_SUITE(comm_tests)
 

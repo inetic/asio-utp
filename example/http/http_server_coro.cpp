@@ -26,11 +26,12 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include <utp.hpp>
+#include <asio_utp.hpp>
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>
+namespace utp = asio_utp;
 using udp = boost::asio::ip::udp;       // from <boost/asio/ip/udp.hpp>
 
 // Return a reasonable mime type based on the extension of a file.
