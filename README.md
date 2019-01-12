@@ -68,4 +68,4 @@ For more detailed instructions, have a look at the `.circleci/config.yml` file.
 [`async_read`]:       https://www.boost.org/doc/libs/1_69_0/doc/html/boost_asio/reference/async_read.html
 [`async_write`]:      https://www.boost.org/doc/libs/1_69_0/doc/html/boost_asio/reference/async_write.html
 [`ssl::stream`]:      https://www.boost.org/doc/libs/1_69_0/doc/html/boost_asio/reference/ssl__stream.html
-[API]:                https://github.com/inetic/asio-utp/blob/master/include/utp/socket.hpp#L15
+[API]:                https://github.com/inetic/asio-utp/blob/master/include/asio_utp/socket.hpp#L15
