@@ -24,13 +24,6 @@ using string_view = boost::string_view;
 
 enum class Type { client, server };
 
-// TODO: If the `utp` namespace was not a namespace but was a class instead (as
-// is the case with `asio::tcp` and `asio::udp`, we wouldn't need this struct.
-struct Utp {
-    using endpoint = udp::endpoint;
-    using socket = utp::socket;
-};
-
 float seconds(Clock::duration d) {
     using namespace std::chrono;
     return duration_cast<milliseconds>(d).count() / 1000.f;
@@ -171,13 +164,13 @@ template<> struct Async<tcp> {
     }
 };
 
-template<> struct Async<Utp> {
+template<> struct Async<utp::protocol> {
     static
     utp::socket accept( asio::io_context& ioc
                       , string_view local_ep_s
                       , asio::yield_context yield)
     {
-        auto local_ep = parse_endpoint<Utp>(local_ep_s);
+        auto local_ep = parse_endpoint<utp::protocol>(local_ep_s);
     
         utp::socket socket(ioc, local_ep);
         socket.async_accept(yield);
@@ -259,9 +252,9 @@ int main(int argc, const char** argv)
                 }
                 else /* proto == utp */ {
                     if (type == Type::client) {
-                        client<Utp>(ioc, endpoint, yield);
+                        client<utp::protocol>(ioc, endpoint, yield);
                     } else {
-                        server<Utp>(ioc, endpoint, yield);
+                        server<utp::protocol>(ioc, endpoint, yield);
                     }
                 }
             });
