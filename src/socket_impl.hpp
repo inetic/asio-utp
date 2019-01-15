@@ -1,7 +1,8 @@
 #pragma once
 
 #include <boost/intrusive/list.hpp>
-#include "asio_utp/detail/handler.hpp"
+#include <asio_utp/detail/handler.hpp>
+#include "context_service.hpp"
 
 namespace asio_utp {
     
@@ -65,6 +66,7 @@ private:
 
 private:
     boost::asio::io_context& _ioc;
+    context_service& _context_service;
 
     void* _utp_socket = nullptr;
     bool _closed = false;

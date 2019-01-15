@@ -34,37 +34,6 @@ struct context::ticker_type : public enable_shared_from_this<ticker_type> {
     }
 };
 
-/* static */
-std::map<context::endpoint_type, std::weak_ptr<context>>&
-context::contexts()
-{
-    static std::map<endpoint_type, weak_ptr<context>> ctxs;
-    return ctxs;
-}
-
-/* static */
-std::shared_ptr<context>
-context::get_or_create(asio::io_context& ioc, const endpoint_type& ep)
-{
-    auto& ctxs = contexts();
-
-    auto i = ctxs.find(ep);
-
-    if (i != ctxs.end()) return i->second.lock();
-
-    auto ctx = make_shared<context>(socket_type(ioc, ep));
-    ctxs[ctx->udp_socket().local_endpoint()] = ctx;
-
-    return ctx;
-}
-
-/* static */
-void context::erase_context(endpoint_type ep)
-{
-    auto& ctxs = contexts();
-    ctxs.erase(ep);
-}
-
 uint64 context::callback_log(utp_callback_arguments* a)
 {
     cerr << "LOG: " << a->socket << " " << a->buf << endl;
@@ -220,7 +189,8 @@ void context::stop()
     _ticker->stop();
     _ticker = nullptr;
 
-    erase_context(_local_endpoint);
+    auto& cs = asio::use_service<context_service>(_socket.get_io_context());
+    cs.erase_context(_local_endpoint);
 }
 
 void context::start_reading()
