@@ -2,12 +2,12 @@
 
 #include <boost/intrusive/list.hpp>
 #include <asio_utp/detail/handler.hpp>
-#include "context_service.hpp"
 
 namespace asio_utp {
     
 class context;
 class socket;
+class context_service;
 
 class socket_impl : public std::enable_shared_from_this<socket_impl> {
 public:

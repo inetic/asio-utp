@@ -16,6 +16,7 @@ class context : public std::enable_shared_from_this<context> {
 public:
     using endpoint_type = asio::ip::udp::endpoint;
     using socket_type = asio::ip::udp::socket;
+    using executor_type = socket_type::executor_type;
 
 public:
     context(socket_type socket);
@@ -24,7 +25,7 @@ public:
 
     const socket_type& udp_socket() const { return _socket; }
 
-    asio::io_context::executor_type get_executor();
+    executor_type get_executor();
 
     bool socket_is_open() const { return _socket.is_open(); }
 

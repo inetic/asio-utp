@@ -1,4 +1,5 @@
 #include "context.hpp"
+#include "context_service.hpp"
 #include <asio_utp/socket.hpp>
 #include <boost/asio/steady_timer.hpp>
 
@@ -12,10 +13,17 @@ struct context::ticker_type : public enable_shared_from_this<ticker_type> {
     asio::steady_timer _timer;
     function<void()> _on_tick;
 
-    ticker_type(asio::io_context& ioc, function<void()> on_tick)
-        : _timer(ioc)
+#if BOOST_VERSION >= 107000
+    ticker_type(asio::executor&& ex, function<void()> on_tick)
+        : _timer(move(ex))
         , _on_tick(move(on_tick))
     {}
+#else
+    ticker_type(asio::io_context::executor_type&& ex, function<void()> on_tick)
+        : _timer(ex.context())
+        , _on_tick(move(on_tick))
+    {}
+#endif
 
     void start() {
         _timer.expires_from_now(chrono::milliseconds(500));
@@ -173,7 +181,7 @@ void context::start()
 {
     start_reading();
 
-    _ticker = make_shared<ticker_type>(get_executor().context(), [this] {
+    _ticker = make_shared<ticker_type>(get_executor(), [this] {
             assert(_utp_ctx);
             if (!_utp_ctx) return;
             utp_check_timeouts(_utp_ctx);
@@ -189,7 +197,7 @@ void context::stop()
     _ticker->stop();
     _ticker = nullptr;
 
-    auto& cs = asio::use_service<context_service>(_socket.get_io_context());
+    auto& cs = asio::use_service<context_service>(_socket.get_executor().context());
     cs.erase_context(_local_endpoint);
 }
 
@@ -235,7 +243,7 @@ void context::on_read(const sys::error_code& ec, size_t size)
     start_reading();
 }
 
-asio::io_context::executor_type context::get_executor()
+context::executor_type context::get_executor()
 {
     return _socket.get_executor();
 }

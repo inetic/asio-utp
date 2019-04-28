@@ -1,4 +1,5 @@
 #include <asio_utp/socket.hpp>
+#include "context_service.hpp"
 #include "../context.hpp"
 #include "../util.hpp"
 
@@ -9,7 +10,7 @@ using namespace asio_utp;
 
 socket_impl::socket_impl(boost::asio::io_context& ioc)
     : _ioc(ioc)
-    , _context_service(asio::use_service<context_service>(ioc))
+    , _context_service(asio::use_service<context_service>(_ioc.get_executor().context()))
     , _utp_socket(nullptr)
 {}
 
