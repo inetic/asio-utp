@@ -223,13 +223,13 @@ void context::on_read(const sys::error_code& ec, size_t size)
         return;
     }
 
-    sockaddr src_addr = util::to_sockaddr(_rx_endpoint);
+    sockaddr_storage src_addr = util::to_sockaddr(_rx_endpoint);
 
     bool handled = utp_process_udp( _utp_ctx
                                   , (unsigned char*) _rx_buffer.data()
                                   , size
-                                  , &src_addr
-                                  , sizeof(src_addr));
+                                  , (sockaddr*) &src_addr
+                                  , util::sockaddr_size(src_addr));
 
     if (!handled) {
         // TODO: Add some way to the user to handle these packets.

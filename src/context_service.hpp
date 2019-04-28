@@ -51,4 +51,4 @@ context_service::get_or_create(Executor& ex, const endpoint_type& ep)
     return ctx;
 }
 
-} // namespace
+}

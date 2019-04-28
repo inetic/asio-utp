@@ -253,10 +253,10 @@ void socket_impl::do_connect(const endpoint_type& ep, handler<> h)
 
     _connect_handler = move(h);
 
-    sockaddr addr = util::to_sockaddr(ep);
+    sockaddr_storage addr = util::to_sockaddr(ep);
 
     _utp_socket = utp_create_socket(_context->get_libutp_context());
     utp_set_userdata((utp_socket*) _utp_socket, this);
 
-    utp_connect((utp_socket*) _utp_socket, &addr, sizeof(addr));
+    utp_connect((utp_socket*) _utp_socket, (sockaddr*) &addr, util::sockaddr_size(addr));
 }
