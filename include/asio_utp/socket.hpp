@@ -46,7 +46,7 @@ public:
         return _ioc->get_executor();
     }
 
-    boost::asio::io_context& get_io_context() const
+    boost::asio::io_context& get_io_service() const
     {
         return _ioc->get_executor().context();
     }
