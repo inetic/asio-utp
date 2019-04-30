@@ -46,6 +46,11 @@ public:
         return _ioc->get_executor();
     }
 
+    boost::asio::io_context& get_io_context() const
+    {
+        return _ioc->get_executor().context();
+    }
+
     // For debugging only
     void* pimpl() const { return _socket_impl.get(); }
 
