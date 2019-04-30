@@ -2,6 +2,9 @@ cmake_minimum_required (VERSION 3.5)
 set(BOOST_VERSION 1.58)
 include(ExternalProject)
 
+option(ASIO_UTP_WITH_TESTS    "Build tests" ON)
+option(ASIO_UTP_WITH_EXAMPLES "Build examples" ON)
+
 add_definitions(-DBOOST_COROUTINES_NO_DEPRECATION_WARNING)
 
 set(SANITIZER_FLAGS "-fno-omit-frame-pointer -fsanitize=address")
@@ -24,12 +27,12 @@ set(CXX_INCLUDE_DIR "./include")
 
 #---------------------------------------------------------------------
 
-set(libutp_sources "./src/libutp/utp_internal.cpp"
-                   "./src/libutp/utp_utils.cpp"
-                   "./src/libutp/utp_hash.cpp"
-                   "./src/libutp/utp_callbacks.cpp"
-                   "./src/libutp/utp_api.cpp"
-                   "./src/libutp/utp_packedsockaddr.cpp")
+set(libutp_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/libutp/utp_internal.cpp"
+                   "${CMAKE_CURRENT_SOURCE_DIR}/src/libutp/utp_utils.cpp"
+                   "${CMAKE_CURRENT_SOURCE_DIR}/src/libutp/utp_hash.cpp"
+                   "${CMAKE_CURRENT_SOURCE_DIR}/src/libutp/utp_callbacks.cpp"
+                   "${CMAKE_CURRENT_SOURCE_DIR}/src/libutp/utp_api.cpp"
+                   "${CMAKE_CURRENT_SOURCE_DIR}/src/libutp/utp_packedsockaddr.cpp")
 
 file(GLOB asio_utp_sources "./src/*.cpp")
 
@@ -44,23 +47,26 @@ target_include_directories(asio_utp PUBLIC
     "${Boost_INCLUDE_DIR}")
 
 #---------------------------------------------------------------------
-# Boost.Beast example
-add_subdirectory(example/http)
-add_subdirectory(example/ucat)
+if(ASIO_UTP_WITH_EXAMPLES)
+    # Boost.Beast example
+    add_subdirectory(example/http)
+    add_subdirectory(example/ucat)
+endif() # ASIO_UTP_WITH_EXAMPLES
 
 #---------------------------------------------------------------------
-# Tests
-add_executable(test-util "test/util.cpp")
-target_include_directories(test-util PUBLIC "./src" "${Boost_INCLUDE_DIR}")
-target_link_libraries(test-util ${Boost_LIBRARIES} Threads::Threads)
+if(ASIO_UTP_WITH_TESTS)
+    # Tests
+    add_executable(test-util "test/util.cpp")
+    target_include_directories(test-util PUBLIC "./src" "${Boost_INCLUDE_DIR}")
+    target_link_libraries(test-util ${Boost_LIBRARIES} Threads::Threads)
 
-# Tests
-add_executable(test-comm "test/comm.cpp")
-target_include_directories(test-comm PUBLIC "./src" "${Boost_INCLUDE_DIR}")
-target_link_libraries(test-comm asio_utp ${Boost_LIBRARIES} Threads::Threads)
+    # Tests
+    add_executable(test-comm "test/comm.cpp")
+    target_include_directories(test-comm PUBLIC "./src" "${Boost_INCLUDE_DIR}")
+    target_link_libraries(test-comm asio_utp ${Boost_LIBRARIES} Threads::Threads)
 
-# Tests
-add_executable(test-bench "test/bench.cpp")
-target_include_directories(test-bench PUBLIC "./src" "${Boost_INCLUDE_DIR}")
-target_link_libraries(test-bench asio_utp ${Boost_LIBRARIES} Threads::Threads)
-
+    # Tests
+    add_executable(test-bench "test/bench.cpp")
+    target_include_directories(test-bench PUBLIC "./src" "${Boost_INCLUDE_DIR}")
+    target_link_libraries(test-bench asio_utp ${Boost_LIBRARIES} Threads::Threads)
+endif() # ASIO_UTP_WITH_TESTS
