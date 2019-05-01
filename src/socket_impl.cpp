@@ -92,25 +92,24 @@ void socket_impl::do_write(handler<size_t> h)
 
     bool still_writable = true;
 
-    _bytes_sent = 0;
+    for (auto& b : _tx_buffers) {
+        while (size_t s = asio::buffer_size(b)) {
+            // TODO: Use utp_writev
+            auto w = utp_write( (utp_socket*) _utp_socket
+                              , (void*) asio::buffer_cast<const void*>(b)
+                              , s);
 
-    for (auto b : _tx_buffers) {
-        size_t s = asio::buffer_size(b);
+            _bytes_sent += w;
+            b = b + w;
+            s = asio::buffer_size(b);
 
-        if (s == 0) continue;
-
-        // TODO: Use utp_writev
-        auto w = utp_write( (utp_socket*) _utp_socket
-                          , (void*) asio::buffer_cast<const void*>(b)
-                          , s);
-
-        if (w == 0) {
-            still_writable = false;
-            break;
+            if (w < s) {
+                still_writable = false;
+                break;
+            }
         }
 
-        _bytes_sent += w;
-        b = b + w;
+        if (!still_writable) break;
     }
 
     if (still_writable) {
