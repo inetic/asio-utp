@@ -241,6 +241,10 @@ void socket_impl::close_with_error(const sys::error_code& ec)
     if (_recv_handler) {
         _recv_handler.post(ec, 0);
     }
+
+    if (_send_handler) {
+        _send_handler.post(ec, 0);
+    }
 }
 
 
