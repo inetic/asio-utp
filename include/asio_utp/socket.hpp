@@ -13,6 +13,8 @@ public:
     using endpoint_type = boost::asio::ip::udp::endpoint;
 
 public:
+    socket() = default;
+
     socket(const socket&) = delete;
     socket& operator=(const socket&) = delete;
 
