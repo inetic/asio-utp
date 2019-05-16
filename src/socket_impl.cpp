@@ -125,6 +125,12 @@ void socket_impl::on_writable()
     do_write(move(_send_handler));
 }
 
+template<class Bufs>
+static size_t buffers_size(const Bufs& bufs) {
+    size_t ret = 0;
+    for (auto& b : bufs) { ret += asio::buffer_size(b); }
+    return ret;
+}
 
 void socket_impl::do_read(handler<size_t> h)
 {
@@ -132,6 +138,10 @@ void socket_impl::do_read(handler<size_t> h)
 
     if (!_context) {
         return h.post(asio::error::bad_descriptor, 0);
+    }
+
+    if (buffers_size(_rx_buffers) == 0) {
+        return h.post(sys::error_code(), 0);
     }
 
     _recv_handler = std::move(h);
