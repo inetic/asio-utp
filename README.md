@@ -53,14 +53,33 @@ For more detailed instructions, have a look at the `.circleci/config.yml` file.
   keep-alive packets in `libutp/utp_internals.c`, but those seem to be only
   used for preserving holes in NATs (not to indicate whether the other end
   is still alive).
+* The call to `socket::async_connect` simply executes the underlying
+  `libutp/utp_connect` function. The latter sends one SYN packet but does not
+  implement any timeout nor resending of that packet. This needs to be done
+  explicitly by closing the socket after some timeout and then re-starting
+  the call to `socket::async_connect`.
+
+## Architecture
+
+```
+    asio_utp::socket ---+
+                         \
+    asio_utp::socket -----+--- asio_utp::context
+                         /              \
+    asio_utp::socket ---+                \
+                                          +--- asio_utp::udp_multiplexer_impl
+    asio_utp::udp_multiplexer ---+       /                   /
+                                  \     /                   /
+    asio_utp::udp_multiplexer -----+---+            asio::udp::socket
+                                  /
+    asio_utp::udp_multiplexer ---+
+```
 
 ## TODO
 
 * Add API to handle non-uTP packets
 * Handle ICMP messages
 * Thread safety
-* The [API] is pretty minimal and mostly identical to the one in `boost::ip::tcp::socket`, but some
-  documentation wouls still be in place
 
 
 [`AsyncReadStream`]:  https://www.boost.org/doc/libs/1_69_0/doc/html/boost_asio/reference/AsyncReadStream.html
