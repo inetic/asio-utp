@@ -86,7 +86,10 @@ void socket_impl::on_accept(void* usocket)
 void socket_impl::do_write(handler<size_t> h)
 {
     assert(!_send_handler);
-    assert(_utp_socket);
+
+    if (!_utp_socket) {
+        return h.post(asio::error::bad_descriptor, 0);
+    }
 
     _send_handler = move(h);
 
