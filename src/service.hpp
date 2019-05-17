@@ -47,7 +47,7 @@ service::maybe_create_context(Executor& ex, const endpoint_type& ep)
     if (i != _contexts.end()) return i->second.lock();
 
     auto ctx = std::make_shared<::asio_utp::context>(socket_type(ex, ep));
-    _contexts[ctx->udp_socket().local_endpoint()] = ctx;
+    _contexts[ctx->local_endpoint()] = ctx;
 
     return ctx;
 }

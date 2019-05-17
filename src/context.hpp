@@ -23,7 +23,7 @@ public:
 
     utp_context* get_libutp_context() const { return _utp_ctx; }
 
-    const socket_type& udp_socket() const { return _socket; }
+    endpoint_type local_endpoint() const { return _local_endpoint; }
 
     executor_type get_executor();
 

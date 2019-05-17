@@ -190,7 +190,7 @@ void socket_impl::do_accept(handler<> h)
 asio::ip::udp::endpoint socket_impl::local_endpoint() const
 {
     assert(_context);
-    return _context->udp_socket().local_endpoint();
+    return _context->local_endpoint();
 }
 
 
