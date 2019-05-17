@@ -62,15 +62,16 @@ For more detailed instructions, have a look at the `.circleci/config.yml` file.
 ## Architecture
 
 ```
-    asio_utp::socket ---+
-                         \
-    asio_utp::socket -----+--- asio_utp::context
-                         /              \
-    asio_utp::socket ---+                \
+    asio_utp::socket --- asio_utp::socket_impl ---+
+                                                   \
+    asio_utp::socket --- asio_utp::socket_impl -----+--- asio_utp::context
+                                                   /            /
+    asio_utp::socket --- asio_utp::socket_impl ---+            /
+                                                              /
                                           +--- asio_utp::udp_multiplexer_impl
-    asio_utp::udp_multiplexer ---+       /                   /
-                                  \     /                   /
-    asio_utp::udp_multiplexer -----+---+            asio::udp::socket
+    asio_utp::udp_multiplexer ---+       /                    \
+                                  \     /                      \
+    asio_utp::udp_multiplexer -----+---+                asio::udp::socket
                                   /
     asio_utp::udp_multiplexer ---+
 ```
