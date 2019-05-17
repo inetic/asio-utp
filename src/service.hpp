@@ -7,7 +7,7 @@ namespace asio_utp {
 
 class context;
 
-class context_service : public asio::execution_context::service {
+class service : public asio::execution_context::service {
 public:
     using endpoint_type = asio::ip::udp::endpoint;
     using socket_type = asio::ip::udp::socket;
@@ -15,7 +15,7 @@ public:
 public:
     static asio::io_context::id id;
 
-    context_service(asio::execution_context& ctx)
+    service(asio::execution_context& ctx)
         : asio::execution_context::service(ctx)
     {}
 
@@ -39,7 +39,7 @@ namespace asio_utp {
 
 template<class Executor>
 std::shared_ptr<::asio_utp::context>
-context_service::get_or_create(Executor& ex, const endpoint_type& ep)
+service::get_or_create(Executor& ex, const endpoint_type& ep)
 {
     auto i = _contexts.find(ep);
 

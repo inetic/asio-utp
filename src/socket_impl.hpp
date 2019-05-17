@@ -7,7 +7,7 @@ namespace asio_utp {
     
 class context;
 class socket;
-class context_service;
+class service;
 
 class socket_impl : public std::enable_shared_from_this<socket_impl> {
 public:
@@ -66,7 +66,7 @@ private:
 
 private:
     boost::asio::io_context& _ioc;
-    context_service& _context_service;
+    service& _service;
 
     void* _utp_socket = nullptr;
     bool _closed = false;

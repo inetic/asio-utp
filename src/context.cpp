@@ -1,5 +1,5 @@
 #include "context.hpp"
-#include "context_service.hpp"
+#include "service.hpp"
 #include <asio_utp/socket.hpp>
 #include <boost/asio/steady_timer.hpp>
 
@@ -197,7 +197,7 @@ void context::stop()
     _ticker->stop();
     _ticker = nullptr;
 
-    auto& cs = asio::use_service<context_service>(_socket.get_executor().context());
+    auto& cs = asio::use_service<service>(_socket.get_executor().context());
     cs.erase_context(_local_endpoint);
 }
 
