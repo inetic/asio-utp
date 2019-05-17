@@ -18,7 +18,7 @@ socket_impl::socket_impl(boost::asio::io_context& ioc)
 void socket_impl::bind(const endpoint_type& ep)
 {
     assert(!_context);
-    _context = _service.get_or_create(_ioc, ep);
+    _context = _service.maybe_create_context(_ioc, ep);
     _context->increment_use_count();
 }
 

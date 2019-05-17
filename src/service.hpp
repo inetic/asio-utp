@@ -21,7 +21,7 @@ public:
 
     template<class Executor>
     std::shared_ptr<::asio_utp::context>
-    get_or_create(Executor&, const endpoint_type&);
+    maybe_create_context(Executor&, const endpoint_type&);
     
     void erase_context(endpoint_type ep);
 
@@ -38,8 +38,9 @@ private:
 namespace asio_utp {
 
 template<class Executor>
+inline
 std::shared_ptr<::asio_utp::context>
-service::get_or_create(Executor& ex, const endpoint_type& ep)
+service::maybe_create_context(Executor& ex, const endpoint_type& ep)
 {
     auto i = _contexts.find(ep);
 
@@ -51,4 +52,10 @@ service::get_or_create(Executor& ex, const endpoint_type& ep)
     return ctx;
 }
 
+inline
+void service::erase_context(endpoint_type ep)
+{
+    _contexts.erase(ep);
 }
+
+} // asio_utp
