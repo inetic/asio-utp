@@ -10,6 +10,7 @@ private:
     struct base {
         virtual void post(const error_code&, Args...) = 0;
         virtual void dispatch(const error_code&, Args...) = 0;
+        virtual void exec_after(std::function<void()>) = 0;
         virtual ~base() {};
     };
 
@@ -19,6 +20,7 @@ private:
         Allocator a;
         Func f;
         boost::asio::executor_work_guard<Executor> w;
+        std::function<void()> after;
 
         template<class E, class A, class F>
         impl(E&& e, A&& a, F&& f)
@@ -30,12 +32,39 @@ private:
 
         void post(const error_code& ec, Args... args) override
         {
-            e.post(std::bind(std::move(f), ec, args...), a);
+            if (!after) {
+                e.post(std::bind(std::move(f), ec, args...), a);
+            } else {
+                auto ff =
+                    [f = std::move(f), after = std::move(after)]
+                    (const error_code& ec, auto... args) mutable {
+                        f(ec, args...);
+                        after();
+                    };
+
+                e.post(std::bind(std::move(ff), ec, args...), a);
+            }
         }
 
         void dispatch(const error_code& ec, Args... args) override
         {
-            e.dispatch(std::bind(std::move(f), ec, args...), a);
+            if (!after) {
+                e.dispatch(std::bind(std::move(f), ec, args...), a);
+            } else {
+                auto ff =
+                    [f = std::move(f), after = std::move(after)]
+                    (const error_code& ec, auto... args) mutable {
+                        f(ec, args...);
+                        after();
+                    };
+
+                e.dispatch(std::bind(std::move(ff), ec, args...), a);
+            }
+        }
+
+        void exec_after(std::function<void()> f) override
+        {
+            after = std::move(f);
         }
     };
 
@@ -71,6 +100,10 @@ public:
     void dispatch(const error_code& ec, Args... args) {
         auto i = std::move(_impl);
         i->dispatch(ec, args...);
+    }
+
+    void exec_after(std::function<void()> f) {
+        _impl->exec_after(std::move(f));
     }
 
     operator bool() const { return bool(_impl); }
