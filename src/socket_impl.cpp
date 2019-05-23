@@ -1,7 +1,8 @@
 #include <asio_utp/socket.hpp>
 #include "service.hpp"
-#include "../context.hpp"
-#include "../util.hpp"
+#include "context.hpp"
+#include "util.hpp"
+#include "weak_from_this.hpp"
 
 #include <utp.h>
 
@@ -271,7 +272,7 @@ void socket_impl::on_destroy()
 {
     if (_debug) {
         cerr << this << " socket_impl::on_destroy"
-            << " refcount:" << weak_from_this().use_count()
+            << " refcount:" << asio_utp::weak_from_this(this).use_count()
             << " _self:" << _self.get()
             << "\n";
     }

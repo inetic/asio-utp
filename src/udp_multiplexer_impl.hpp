@@ -3,6 +3,7 @@
 #include <boost/asio/ip/udp.hpp>
 #include <boost/intrusive/list.hpp>
 #include "namespaces.hpp"
+#include "weak_from_this.hpp"
 #include <iostream>
 
 namespace asio_utp {
@@ -106,7 +107,7 @@ inline void udp_multiplexer_impl::start_receiving()
     // of this class require.
     _rx_buffer.resize(4096);
 
-    auto wself = weak_from_this();
+    auto wself = asio_utp::weak_from_this(this);
 
     _udp_socket.async_receive_from
         ( asio::buffer(_rx_buffer)
