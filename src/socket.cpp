@@ -55,32 +55,48 @@ socket::~socket()
 
 void socket::do_connect(const endpoint_type& ep, handler<>&& h)
 {
+    if (!_socket_impl) {
+        return h.post(asio::error::bad_descriptor);
+    }
+
     _socket_impl->do_connect(ep, std::move(move(h)));
 }
 
 void socket::do_accept(handler<>&& h)
 {
+    if (!_socket_impl) {
+        return h.post(asio::error::bad_descriptor);
+    }
+
     _socket_impl->do_accept(std::move(h));
 }
 
 void socket::do_write(handler<size_t>&& h)
 {
+    if (!_socket_impl) {
+        return h.post(asio::error::bad_descriptor, 0);
+    }
+
     _socket_impl->do_write(std::move(h));
 }
 
 void socket::do_read(handler<size_t>&& h)
 {
+    if (!_socket_impl) {
+        return h.post(asio::error::bad_descriptor, 0);
+    }
+
     _socket_impl->do_read(std::move(h));
 }
 
-std::vector<boost::asio::const_buffer>& socket::tx_buffers()
+std::vector<boost::asio::const_buffer>* socket::tx_buffers()
 {
-    assert(_socket_impl);
-    return _socket_impl->_tx_buffers;
+    if (!_socket_impl) return nullptr;
+    return &_socket_impl->_tx_buffers;
 }
 
-std::vector<boost::asio::mutable_buffer>& socket::rx_buffers()
+std::vector<boost::asio::mutable_buffer>* socket::rx_buffers()
 {
-    assert(_socket_impl);
-    return _socket_impl->_rx_buffers;
+    if (!_socket_impl) return nullptr;
+    return &_socket_impl->_rx_buffers;
 }

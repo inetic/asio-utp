@@ -66,8 +66,8 @@ private:
     void do_write  (handler<size_t>&&);
     void do_read   (handler<size_t>&&);
 
-    std::vector<boost::asio::const_buffer>& tx_buffers();
-    std::vector<boost::asio::mutable_buffer>& rx_buffers();
+    std::vector<boost::asio::const_buffer>* tx_buffers();
+    std::vector<boost::asio::mutable_buffer>* rx_buffers();
 
 private:
     friend class socket_impl;
@@ -105,11 +105,13 @@ inline
 auto socket::async_write_some( const ConstBufferSequence& bufs
                              , CompletionToken&& token)
 {
-    tx_buffers().clear();
+    if (auto txb = tx_buffers()) {
+        txb->clear();
 
-    std::copy( boost::asio::buffer_sequence_begin(bufs)
-             , boost::asio::buffer_sequence_end(bufs)
-             , std::back_inserter(tx_buffers()));
+        std::copy( boost::asio::buffer_sequence_begin(bufs)
+                 , boost::asio::buffer_sequence_end(bufs)
+                 , std::back_inserter(*txb));
+    }
 
     boost::asio::async_completion
         < CompletionToken
@@ -127,11 +129,13 @@ inline
 auto socket::async_read_some( const MutableBufferSequence& bufs
                             , CompletionToken&& token)
 {
-    rx_buffers().clear();
+    if (auto rxb = rx_buffers()) {
+        rxb->clear();
 
-    std::copy( boost::asio::buffer_sequence_begin(bufs)
-             , boost::asio::buffer_sequence_end(bufs)
-             , std::back_inserter(rx_buffers()));
+        std::copy( boost::asio::buffer_sequence_begin(bufs)
+                 , boost::asio::buffer_sequence_end(bufs)
+                 , std::back_inserter(*rxb));
+    }
 
     boost::asio::async_completion
         < CompletionToken
