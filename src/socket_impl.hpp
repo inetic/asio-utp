@@ -114,7 +114,11 @@ private:
     // in the mean time, like sending FIN packets and such).
     std::shared_ptr<socket_impl> _self;
 
+#if ASIO_UTP_DEBUG_LOGGING
+    bool _debug = true;
+#else
     bool _debug = false;
+#endif
 };
 
 } // namespace

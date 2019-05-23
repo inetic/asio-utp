@@ -94,7 +94,11 @@ private:
     // Number of operations waiting on the execution queue.
     size_t _completed_op_count = 0;
 
+#if ASIO_UTP_DEBUG_LOGGING
+    bool _debug = true;
+#else
     bool _debug = false;
+#endif
 };
 
 } // namespace
