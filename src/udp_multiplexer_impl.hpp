@@ -42,6 +42,12 @@ public:
                        , asio::socket_base::message_flags
                        , sys::error_code&);
 
+    template< typename ConstBufferSequence
+            , typename WriteHandler>
+    void async_send_to( const ConstBufferSequence&
+                      , const endpoint_type&
+                      , WriteHandler&&);
+
     void register_recv_handler(recv_entry&);
 
     endpoint_type local_endpoint() const {
@@ -147,6 +153,16 @@ std::size_t udp_multiplexer_impl::send_to( const ConstBufferSequence& buffers
                                          , sys::error_code& ec)
 {
     return _udp_socket.send_to(buffers, destination, flags, ec);
+}
+
+template< typename ConstBufferSequence
+        , typename WriteHandler>
+inline
+void udp_multiplexer_impl::async_send_to( const ConstBufferSequence& bufs
+                                        , const endpoint_type& dst
+                                        , WriteHandler&& h)
+{
+    _udp_socket.async_send_to(bufs, dst, std::forward<WriteHandler>(h));
 }
 
 inline
