@@ -9,7 +9,8 @@ using namespace std;
 using namespace asio_utp;
 
 struct context::ticker_type : public enable_shared_from_this<ticker_type> {
-    bool _stopped = false;
+    bool _running = false;
+    bool _outstanding = false;
     asio::steady_timer _timer;
     function<void()> _on_tick;
 
@@ -17,28 +18,41 @@ struct context::ticker_type : public enable_shared_from_this<ticker_type> {
     ticker_type(asio::executor&& ex, function<void()> on_tick)
         : _timer(move(ex))
         , _on_tick(move(on_tick))
-    {}
+    {
+    }
 #else
     ticker_type(asio::io_context::executor_type&& ex, function<void()> on_tick)
         : _timer(ex.context())
         , _on_tick(move(on_tick))
-    {}
+    {
+    }
 #endif
 
     void start() {
-        _timer.expires_from_now(chrono::milliseconds(500));
+        if (_running) return;
+        _running = true;
+        if (_outstanding) return;
+        _timer.expires_after(chrono::milliseconds(500));
+        _outstanding = true;
         _timer.async_wait([this, self = shared_from_this()]
-                          (const sys::error_code&) {
-                              if (_stopped) return;
+                          (const sys::error_code& ec) {
+                              _outstanding = false;
+                              if (!_running) return;
                               _on_tick();
-                              if (_stopped) return;
+                              if (!_running) return;
+                              _running = false;
                               start();
                           });
     }
 
     void stop() {
+        if (!_running) return;
+        _running = false;
         _timer.cancel();
-        _stopped = true;
+    }
+
+    ~ticker_type() {
+        stop();
     }
 };
 
@@ -54,10 +68,10 @@ uint64 context::callback_sendto(utp_callback_arguments* a)
 
     sys::error_code ec;
 
-    self->_socket.send_to( asio::buffer(a->buf, a->len)
-                         , util::to_endpoint(*a->address)
-                         , 0
-                         , ec);
+    self->_multiplexer->send_to( asio::buffer(a->buf, a->len)
+                               , util::to_endpoint(*a->address)
+                               , 0
+                               , ec);
 
     // The libutp library sometimes calls this function even after the last
     // socket holding this context has received an EOF and closed.
@@ -78,9 +92,28 @@ uint64 context::callback_on_error(utp_callback_arguments*)
     return 0;
 }
 
+static const char* libutp_state_name(int state) {
+    switch(state) {
+        case UTP_STATE_CONNECT:    return "UTP_STATE_CONNECT";
+        case UTP_STATE_WRITABLE:   return "UTP_STATE_WRITABLE";
+        case UTP_STATE_EOF:        return "UTP_STATE_EOF";
+        case UTP_STATE_DESTROYING: return "UTP_STATE_DESTROYING";
+        default:                   return "UNKNOWN";
+    }
+}
+
 uint64 context::callback_on_state_change(utp_callback_arguments* a)
 {
     auto socket = (socket_impl*) utp_get_userdata(a->socket);
+
+    auto* ctx = socket ? socket->_context.get() : nullptr;
+
+    if (ctx->_debug) {
+        cerr << ctx << " context::callback_on_state_change"
+           << " socket:" << socket
+           << " new_state:" << libutp_state_name(a->state)
+           << "\n";
+    }
 
     if (!socket) {
         // The utp::socket_impl has detached from this utp_socket
@@ -142,17 +175,32 @@ uint64 context::callback_on_accept(utp_callback_arguments* a)
     return 0;
 }
 
-context::context(asio::ip::udp::socket socket)
-    : _socket(std::move(socket))
-    , _local_endpoint(_socket.local_endpoint())
+context::context(shared_ptr<udp_multiplexer_impl> m)
+    : _multiplexer(std::move(m))
+    , _local_endpoint(_multiplexer->local_endpoint())
     , _utp_ctx(utp_init(2 /* version */))
 {
+    if (_debug) {
+        cerr << this << " context::context()\n";
+    }
+
     // TODO: Throw?
     assert(_utp_ctx);
 
-    if (!_socket.non_blocking()) {
-        _socket.non_blocking(true);
-    }
+    _recv_handle.handler = [&] ( const sys::error_code& ec
+                               , const endpoint_type& ep
+                               , const vector<uint8_t>& data) {
+        return on_read(ec, ep, data);
+    };
+
+    _ticker = make_shared<ticker_type>(get_executor(), [this] {
+            assert(_utp_ctx);
+            if (!_utp_ctx) return;
+            if (_debug) {
+                cerr << this << " context on_tick\n";
+            }
+            utp_check_timeouts(_utp_ctx);
+        });
 
     utp_context_set_userdata(_utp_ctx, this);
 
@@ -177,78 +225,127 @@ void context::decrement_use_count()
     if (--_use_count == 0) stop();
 }
 
+void context::start_receiving()
+{
+    assert(_recv_handle.handler);
+    _ticker->start();
+
+    if (!_recv_handle.is_linked())
+        _multiplexer->register_recv_handler(_recv_handle);
+}
+
 void context::start()
 {
-    start_reading();
-
-    _ticker = make_shared<ticker_type>(get_executor(), [this] {
-            assert(_utp_ctx);
-            if (!_utp_ctx) return;
-            utp_check_timeouts(_utp_ctx);
-        });
-
-    _ticker->start();
+    if (_debug) {
+        cerr << this << " context start\n";
+    }
 }
 
 void context::stop()
 {
-    _socket.close();
+    if (_debug) {
+        cerr << this << " context stop\n";
+    }
 
     _ticker->stop();
-    _ticker = nullptr;
-
-    auto& cs = asio::use_service<service>(_socket.get_executor().context());
-    cs.erase_context(_local_endpoint);
 }
 
-void context::start_reading()
+void context::on_read( const sys::error_code& read_ec
+                     , const endpoint_type& ep
+                     , const vector<uint8_t>& data)
 {
-    if (!_socket.available()) {
+    sys::error_code ec;
+
+    if (!_multiplexer->available(ec)) {
         utp_issue_deferred_acks(_utp_ctx);
     }
 
-    _socket.async_receive_from( asio::buffer(_rx_buffer)
-                              , _rx_endpoint
-                              , [this, self = shared_from_this()]
-                                (const sys::error_code& ec, size_t size)
-                                {
-                                    on_read(ec, size);
-                                });
-}
+    if (read_ec) return;
 
-void context::on_read(const sys::error_code& ec, size_t size)
-{
-    if (ec) {
-        utp_issue_deferred_acks(_utp_ctx);
-        return;
-    }
-
-    sockaddr_storage src_addr = util::to_sockaddr(_rx_endpoint);
+    sockaddr_storage src_addr = util::to_sockaddr(ep);
 
     bool handled = utp_process_udp( _utp_ctx
-                                  , (unsigned char*) _rx_buffer.data()
-                                  , size
+                                  , (unsigned char*) data.data()
+                                  , data.size()
                                   , (sockaddr*) &src_addr
                                   , util::sockaddr_size(src_addr));
+
+    if (!_multiplexer->available(ec)) {
+        utp_issue_deferred_acks(_utp_ctx);
+    }
 
     if (!handled) {
         // TODO: Add some way to the user to handle these packets.
         std::cerr << "Unhandled UDP packet" << std::endl;
     }
 
-    if (!_socket.is_open()) {
-        return;
-    }
-
-    start_reading();
+    if (_outstanding_op_count) start_receiving();
 }
 
 context::executor_type context::get_executor()
 {
-    return _socket.get_executor();
+    assert(_multiplexer && "TODO");
+    return _multiplexer->get_executor();
 }
 
 context::~context()
 {
+    if (_debug) {
+        cerr << this << " ~context\n";
+    }
+
     utp_destroy(_utp_ctx);
+
+    auto& cs = asio::use_service<service>(_multiplexer->get_executor().context());
+    cs.erase_context(_local_endpoint);
+}
+
+void context::increment_outstanding_ops(const char* dbg)
+{
+    if (_debug) {
+        cerr << this << " context::increment_outstanding_ops "
+            << _outstanding_op_count << " -> " << (_outstanding_op_count + 1)
+            << " "  << dbg << " (completed:" << _completed_op_count << ")\n";
+    }
+
+    if (_outstanding_op_count++ == 0) {
+        start_receiving();
+    }
+}
+
+void context::decrement_outstanding_ops(const char* dbg)
+{
+    if (_debug) {
+        cerr << this << " context::decrement_outstanding_ops "
+            << _outstanding_op_count << " -> " << (_outstanding_op_count - 1)
+            << " " << dbg << " (completed:" << _completed_op_count << ")\n";
+    }
+
+    if (--_outstanding_op_count == 0 && _completed_op_count == 0) {
+        _ticker->stop();
+    }
+}
+
+void context::increment_completed_ops(const char* dbg)
+{
+    if (_debug) {
+        cerr << this << " context::increment_completed_ops "
+            << _completed_op_count << " -> " << (_completed_op_count + 1)
+            << " "  << dbg << " (outstanding:" << _outstanding_op_count << ")\n";
+    }
+
+    _completed_op_count++;
+}
+
+void context::decrement_completed_ops(const char* dbg)
+{
+    if (_debug) {
+        cerr << this << " context::decrement_completed_ops "
+            << _completed_op_count << " -> " << (_completed_op_count - 1)
+            << " " << dbg << " (outstanding:" << _outstanding_op_count << ")\n";
+    }
+
+    if (--_completed_op_count == 0 && _outstanding_op_count == 0) {
+        _ticker->stop();
+    }
 }

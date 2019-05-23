@@ -18,8 +18,10 @@ public:
     socket(const socket&) = delete;
     socket& operator=(const socket&) = delete;
 
-    socket(socket&&) = default;
-    socket& operator=(socket&&) = default;
+    socket(socket&&);
+    //socket(socket&&) = default;
+    socket& operator=(socket&&);
+    //socket& operator=(socket&&) = default;
 
     socket(boost::asio::io_context&, const endpoint_type&);
 
@@ -68,6 +70,7 @@ private:
     std::vector<boost::asio::mutable_buffer>& rx_buffers();
 
 private:
+    friend class socket_impl;
     boost::asio::io_context* _ioc = nullptr;
     std::shared_ptr<socket_impl> _socket_impl;
 };

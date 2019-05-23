@@ -6,11 +6,13 @@
 #include "namespaces.hpp"
 #include "util.hpp"
 #include "socket_impl.hpp"
+#include "udp_multiplexer_impl.hpp"
 
 #include <utp.h>
 #include <asio_utp/socket.hpp>
 
 namespace asio_utp {
+
 
 class context : public std::enable_shared_from_this<context> {
 public:
@@ -19,7 +21,7 @@ public:
     using executor_type = socket_type::executor_type;
 
 public:
-    context(socket_type socket);
+    context(std::shared_ptr<udp_multiplexer_impl>);
 
     utp_context* get_libutp_context() const { return _utp_ctx; }
 
@@ -27,15 +29,19 @@ public:
 
     executor_type get_executor();
 
-    bool socket_is_open() const { return _socket.is_open(); }
-
     ~context();
 
     static std::shared_ptr<context>
         get_or_create(asio::io_context&, const endpoint_type&);
 
+    void increment_outstanding_ops(const char* dbg);
+    void decrement_outstanding_ops(const char* dbg);
+    void increment_completed_ops(const char* dbg);
+    void decrement_completed_ops(const char* dbg);
+
 private:
     static void erase_context(endpoint_type);
+    void start_receiving();
 
 private:
     friend class ::asio_utp::socket_impl;
@@ -47,7 +53,9 @@ private:
     void stop();
     void start_reading();
 
-    void on_read(const sys::error_code& ec, size_t size);
+    void on_read( const sys::error_code& ec
+                , const endpoint_type& ep
+                , const std::vector<uint8_t>& data);
 
     static uint64 callback_log(utp_callback_arguments*);
     static uint64 callback_sendto(utp_callback_arguments*);
@@ -60,11 +68,10 @@ private:
     static std::map<endpoint_type, std::weak_ptr<context>>& contexts();
 
 private:
-    socket_type _socket;
+    std::shared_ptr<udp_multiplexer_impl> _multiplexer;
+    udp_multiplexer_impl::recv_entry _recv_handle;
     endpoint_type _local_endpoint;
     utp_context* _utp_ctx;
-    asio::ip::udp::endpoint _rx_endpoint;
-    std::array<char, 4096> _rx_buffer;
     // Number of `socket_impl`ementations referencing using `this`.
     size_t _use_count = 0;
 
@@ -80,6 +87,14 @@ private:
 
     struct ticker_type;
     std::shared_ptr<ticker_type> _ticker;
+
+    // Number of operation started but their handler have
+    // not yet been put onto the execution queue.
+    size_t _outstanding_op_count = 0;
+    // Number of operations waiting on the execution queue.
+    size_t _completed_op_count = 0;
+
+    bool _debug = false;
 };
 
 } // namespace
