@@ -1,5 +1,5 @@
 #include <asio_utp/socket.hpp>
-#include "context_service.hpp"
+#include "service.hpp"
 #include "../context.hpp"
 #include "../util.hpp"
 
@@ -8,29 +8,37 @@
 using namespace std;
 using namespace asio_utp;
 
-socket_impl::socket_impl(boost::asio::io_context& ioc)
-    : _ioc(ioc)
-    , _context_service(asio::use_service<context_service>(_ioc.get_executor().context()))
+socket_impl::socket_impl(socket* owner)
+    : _ioc(owner->get_io_service())
+    , _owner(owner)
+    , _service(asio::use_service<service>(_ioc.get_executor().context()))
     , _utp_socket(nullptr)
-{}
+{
+    if (_debug) {
+        cerr << this << " socket_impl::socket_impl()\n";
+    }
+}
 
 
 void socket_impl::bind(const endpoint_type& ep)
 {
     assert(!_context);
-    _context = _context_service.get_or_create(_ioc, ep);
+    _context = _service.maybe_create_context(_ioc, ep);
     _context->increment_use_count();
 }
 
-
 void socket_impl::on_connect()
 {
-    _connect_handler.post(sys::error_code());
+    post_op(_connect_handler, "connect", sys::error_code());
 }
 
 
 void socket_impl::on_receive(const unsigned char* buf, size_t size)
 {
+    if (_debug) {
+        cerr << this << " socket_impl::on_receive\n";
+    }
+
     using asio::const_buffer;
     using asio::mutable_buffer;
     using asio::buffer_cast;
@@ -67,21 +75,49 @@ void socket_impl::on_receive(const unsigned char* buf, size_t size)
         utp_read_drained((utp_socket*) _utp_socket);
     }
 
-    _recv_handler.post(sys::error_code(), total);
+    post_op(_recv_handler, "recv", sys::error_code(), total);
 }
 
 
 void socket_impl::on_accept(void* usocket)
 {
+    if (_debug) {
+        cerr << this << " socket_impl::on_accept\n";
+    }
+
     assert(!_utp_socket);
     assert(_accept_handler);
 
     utp_set_userdata((utp_socket*) usocket, this);
 
     _utp_socket = usocket;
-    _accept_handler.dispatch(sys::error_code());
+    dispatch_op(_accept_handler, "accept", sys::error_code());
 }
 
+
+template<class Handler>
+void socket_impl::setup_op(Handler& target, Handler&& h, const char* dbg)
+{
+    _context->increment_outstanding_ops(dbg);
+    target = move(h);
+    target.exec_after([ctx = _context, dbg] { ctx->decrement_completed_ops(dbg); });
+}
+
+template<class Handler, class... Args>
+void socket_impl::post_op(Handler& h, const char* dbg, const sys::error_code& ec, Args... args)
+{
+    _context->increment_completed_ops(dbg);
+    _context->decrement_outstanding_ops(dbg);
+    h.post(ec, args...);
+}
+
+template<class Handler, class... Args>
+void socket_impl::dispatch_op(Handler& h, const char* dbg, const sys::error_code& ec, Args... args)
+{
+    _context->increment_completed_ops(dbg);
+    _context->decrement_outstanding_ops(dbg);
+    h.dispatch(ec, args...);
+}
 
 void socket_impl::do_write(handler<size_t> h)
 {
@@ -91,7 +127,7 @@ void socket_impl::do_write(handler<size_t> h)
         return h.post(asio::error::bad_descriptor, 0);
     }
 
-    _send_handler = move(h);
+    setup_op(_send_handler, move(h), "write");
 
     bool still_writable = true;
 
@@ -102,11 +138,13 @@ void socket_impl::do_write(handler<size_t> h)
                               , (void*) asio::buffer_cast<const void*>(b)
                               , s);
 
+            assert(w >= 0);
+
             _bytes_sent += w;
             b = b + w;
             s = asio::buffer_size(b);
 
-            if (w < s) {
+            if (size_t(w) < s) {
                 still_writable = false;
                 break;
             }
@@ -116,7 +154,7 @@ void socket_impl::do_write(handler<size_t> h)
     }
 
     if (still_writable) {
-        _send_handler.post(sys::error_code(), _bytes_sent);
+        post_op(_send_handler, "write", sys::error_code(), _bytes_sent);
         _bytes_sent = 0;
     }
 }
@@ -124,6 +162,10 @@ void socket_impl::do_write(handler<size_t> h)
 
 void socket_impl::on_writable()
 {
+    if (_debug) {
+        cerr << this << " socket_impl::on_writable\n";
+    }
+
     if (!_send_handler) return;
     do_write(move(_send_handler));
 }
@@ -137,6 +179,10 @@ static size_t buffers_size(const Bufs& bufs) {
 
 void socket_impl::do_read(handler<size_t> h)
 {
+    if (_debug) {
+        cerr << this << " socket_impl::do_read\n";
+    }
+
     assert(!_recv_handler);
 
     if (!_context) {
@@ -147,7 +193,7 @@ void socket_impl::do_read(handler<size_t> h)
         return h.post(sys::error_code(), 0);
     }
 
-    _recv_handler = std::move(h);
+    setup_op(_recv_handler, move(h), "read");
 
     // If we haven't yet received anything, we wait. But note that if we did,
     // but the _rx_buffers is empty, then we still post the callback with zero
@@ -173,7 +219,7 @@ void socket_impl::do_read(handler<size_t> h)
         }
     }
 
-    _recv_handler.post(sys::error_code(), s);
+    post_op(_recv_handler, "recv", sys::error_code(), s);
 }
 
 
@@ -183,19 +229,24 @@ void socket_impl::do_accept(handler<> h)
     assert(_context);
     assert(!_accept_handler);
     _context->_accepting_sockets.push_back(*this);
-    _accept_handler = move(h);
+
+    setup_op(_accept_handler, move(h), "accept");
 }
 
 
 asio::ip::udp::endpoint socket_impl::local_endpoint() const
 {
     assert(_context);
-    return _context->udp_socket().local_endpoint();
+    return _context->local_endpoint();
 }
 
 
 void socket_impl::close()
 {
+    if (_debug) {
+        cerr << this << " socket_impl::close()\n";
+    }
+
     if (_closed) return;
 
     _closed = true;
@@ -206,59 +257,93 @@ void socket_impl::close()
 
 void socket_impl::on_eof()
 {
+    if (_debug) {
+        cerr << this << " socket_impl::on_eof\n";
+    }
+
     close_with_error(asio::error::connection_reset);
 }
 
 
+// Called by libutp once the socket finished its termination sequence (send
+// `fin`; receive `ack`; etc...)
 void socket_impl::on_destroy()
 {
-    _utp_socket = nullptr;
-
-    if (_context) {
-        _context->decrement_use_count();
-        _context = nullptr;
+    if (_debug) {
+        cerr << this << " socket_impl::on_destroy"
+            << " refcount:" << weak_from_this().use_count()
+            << " _self:" << _self.get()
+            << "\n";
     }
+
+    assert(_utp_socket);
+
+    _utp_socket = nullptr;
 
     close_with_error(asio::error::connection_aborted);
 
-    // Do this last as it may trigger the destructor.
-    _self = nullptr;
+    if (_self) {
+        _context->decrement_outstanding_ops("close");
+    }
+
+    // This function is called from inside libutp. We must make sure that
+    // neither _utp_socket, nor the _context get destroyed before that function
+    // finishes. On the other hand we do want to schedule destruction of `this`
+    // some time after that.
+    get_executor().post( [&, s = shared_from_this()] { _self = nullptr; }
+            , std::allocator<void>());
 }
 
 
 void socket_impl::close_with_error(const sys::error_code& ec)
 {
+    if (_debug) {
+        cerr << this << " socket_impl::close_with_error "
+            "_utp_socket:" << _utp_socket << " _self:" << _self.get() << "\n";
+    }
+
     if (_utp_socket) {
         utp_close((utp_socket*) _utp_socket);
         _self = shared_from_this();
+        if (_owner) {
+            _owner->_socket_impl = nullptr;
+            _owner = nullptr;
+        }
+        _context->increment_outstanding_ops("close");
     }
 
     if (_accept_handler) {
-        _accept_handler.post(ec);
+        post_op(_accept_handler, "accept", ec);
     }
 
     if (_connect_handler) {
-        _connect_handler.post(ec);
+        post_op(_connect_handler, "connect", ec);
     }
 
     if (_recv_handler) {
-        _recv_handler.post(ec, 0);
+        post_op(_recv_handler, "recv", ec, 0);
     }
 
     if (_send_handler) {
-        _send_handler.post(ec, 0);
+        post_op(_send_handler, "send", ec, 0);
     }
 }
 
 
 socket_impl::~socket_impl()
 {
+    if (_debug) {
+        cerr << this << " socket_impl::~socket_impl()\n";
+    }
+
     if (_utp_socket) {
         utp_set_userdata((utp_socket*) _utp_socket, nullptr);
     }
-    else {
-        // _utp_socket is null, so on_destroy won't be called from libutp
-        on_destroy();
+
+    close_with_error(asio::error::connection_aborted);
+
+    if (_context) {
+        _context->decrement_use_count();
     }
 }
 
@@ -267,7 +352,7 @@ void socket_impl::do_connect(const endpoint_type& ep, handler<> h)
 {
     assert(!_utp_socket);
 
-    _connect_handler = move(h);
+    setup_op(_connect_handler, move(h), "connect");
 
     sockaddr_storage addr = util::to_sockaddr(ep);
 

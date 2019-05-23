@@ -22,8 +22,70 @@ static asio::mutable_buffers_1 buffer(std::string& s) {
     return asio::buffer(const_cast<char*>(s.data()), s.size());
 }
 
+BOOST_AUTO_TEST_CASE(comm_no_block)
+{
+    asio::io_context ioc;
 
-BOOST_AUTO_TEST_CASE(comm_test)
+    utp::socket s(ioc, {ip::address_v4::loopback(), 0});
+
+    // When there are no async actions waiting to be completed, this shouldn't
+    // block.
+    ioc.run();
+}
+
+BOOST_AUTO_TEST_CASE(comm_server_reads)
+{
+    asio::io_context ioc;
+
+    utp::socket server_s(ioc, {ip::address_v4::loopback(), 0});
+    utp::socket client_s(ioc, {ip::address_v4::loopback(), 0});
+
+    auto server_ep = server_s.local_endpoint();
+
+    size_t end_count = 2;
+
+    // TODO: We shouldn't need this
+    auto on_finish = [&] {
+        if (--end_count != 0) return;
+        client_s.close();
+        server_s.close();
+    };
+
+    string tx_msg = "test";
+
+    asio::spawn(ioc, [&](asio::yield_context yield) {
+        sys::error_code ec;
+
+        server_s.async_accept(yield[ec]);
+        BOOST_REQUIRE(!ec);
+
+        string rx_msg(tx_msg.size(), '\0');
+        size_t size = server_s.async_read_some(buffer(rx_msg), yield[ec]);
+        BOOST_REQUIRE(!ec);
+        BOOST_REQUIRE_EQUAL(rx_msg, tx_msg);
+
+        on_finish();
+    });
+
+    asio::spawn(ioc, [&](asio::yield_context yield) {
+        sys::error_code ec;
+
+        client_s.async_connect(server_ep, yield[ec]);
+        BOOST_REQUIRE(!ec);
+
+        client_s.async_write_some(asio::buffer(tx_msg), yield[ec]);
+        BOOST_REQUIRE(!ec);
+
+        on_finish();
+    });
+
+    ioc.run();
+
+    BOOST_REQUIRE_EQUAL(end_count, size_t(0));
+}
+
+
+BOOST_AUTO_TEST_CASE(comm_exchange)
 {
     asio::io_context ioc;
 
@@ -137,6 +199,16 @@ BOOST_AUTO_TEST_CASE(comm_test2)
 }
 
 
+BOOST_AUTO_TEST_CASE(socket_local_random_bind)
+{
+    asio::io_context ioc;
+
+    utp::socket s(ioc, {ip::address_v4::loopback(), 0});
+
+    BOOST_REQUIRE(s.local_endpoint().port());
+}
+
+
 BOOST_AUTO_TEST_CASE(comm_same_endpoint_multiplex)
 {
     asio::io_context ioc;
@@ -152,6 +224,8 @@ BOOST_AUTO_TEST_CASE(comm_same_endpoint_multiplex)
 
         server2.async_accept(yield[ec]);
         BOOST_REQUIRE(!ec);
+        server1.close();
+        server2.close();
     });
 
     asio::spawn(ioc, [&](asio::yield_context yield) {
@@ -210,6 +284,7 @@ BOOST_AUTO_TEST_CASE(comm_send_large_data)
 
         server_s.async_read_some(buffer(rx_msg), yield[ec]);
         BOOST_REQUIRE_EQUAL(ec, asio::error::connection_reset);
+        //server_s.close();
     });
 
     asio::spawn(ioc, [&](asio::yield_context yield) {

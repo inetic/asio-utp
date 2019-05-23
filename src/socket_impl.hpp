@@ -7,7 +7,7 @@ namespace asio_utp {
     
 class context;
 class socket;
-class context_service;
+class service;
 
 class socket_impl : public std::enable_shared_from_this<socket_impl> {
 public:
@@ -20,7 +20,7 @@ public:
     socket_impl(socket_impl&&) = delete;
     socket_impl& operator=(socket_impl&&) = delete;
 
-    socket_impl(boost::asio::io_context&);
+    socket_impl(socket*);
 
     void bind(const endpoint_type&);
 
@@ -53,8 +53,6 @@ private:
     void on_accept(void* usocket);
     void on_receive(const unsigned char*, size_t);
 
-    socket_impl(std::shared_ptr<context>, void* utp_socket);
-
     accept_hook_type _accept_hook;
 
     void do_write(handler<size_t>);
@@ -64,11 +62,23 @@ private:
 
     void close_with_error(const boost::system::error_code&);
 
+    bool is_active() const;
+
+    template<class Handler>
+    void setup_op(Handler&, Handler&&, const char* dbg);
+
+    template<class Handler, class... Args>
+    void post_op(Handler&, const char* dbg, const sys::error_code&, Args...);
+
+    template<class Handler, class... Args>
+    void dispatch_op(Handler&, const char* dbg, const sys::error_code&, Args...);
+
 private:
     boost::asio::io_context& _ioc;
-    context_service& _context_service;
+    service& _service;
 
     void* _utp_socket = nullptr;
+    socket* _owner = nullptr;
     bool _closed = false;
 
     std::shared_ptr<context> _context;
@@ -103,6 +113,8 @@ private:
     // until libutp destroys `this->_utp_socket` (there is some IO that is done
     // in the mean time, like sending FIN packets and such).
     std::shared_ptr<socket_impl> _self;
+
+    bool _debug = false;
 };
 
 } // namespace

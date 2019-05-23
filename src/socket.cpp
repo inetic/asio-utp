@@ -7,9 +7,27 @@ using namespace asio_utp;
 
 socket::socket(boost::asio::io_context& ioc, const endpoint_type& ep)
     : _ioc(&ioc)
-    , _socket_impl(make_shared<socket_impl>(ioc))
+    , _socket_impl(make_shared<socket_impl>(this))
 {
     _socket_impl->bind(ep);
+}
+
+socket::socket(socket&& other)
+    : _ioc(other._ioc)
+    , _socket_impl(move(other._socket_impl))
+{
+    other._ioc = nullptr;
+    _socket_impl->_owner = this;
+}
+
+asio_utp::socket& socket::operator=(socket&& other)
+{
+    assert(!_ioc || !other._ioc || _ioc == other._ioc);
+    assert(other._socket_impl->_owner);
+    _ioc = other._ioc;
+    _socket_impl = move(other._socket_impl);
+    _socket_impl->_owner = this;
+    return *this;
 }
 
 boost::asio::ip::udp::endpoint socket::local_endpoint() const
@@ -37,30 +55,48 @@ socket::~socket()
 
 void socket::do_connect(const endpoint_type& ep, handler<>&& h)
 {
+    if (!_socket_impl) {
+        return h.post(asio::error::bad_descriptor);
+    }
+
     _socket_impl->do_connect(ep, std::move(move(h)));
 }
 
 void socket::do_accept(handler<>&& h)
 {
+    if (!_socket_impl) {
+        return h.post(asio::error::bad_descriptor);
+    }
+
     _socket_impl->do_accept(std::move(h));
 }
 
 void socket::do_write(handler<size_t>&& h)
 {
+    if (!_socket_impl) {
+        return h.post(asio::error::bad_descriptor, 0);
+    }
+
     _socket_impl->do_write(std::move(h));
 }
 
 void socket::do_read(handler<size_t>&& h)
 {
+    if (!_socket_impl) {
+        return h.post(asio::error::bad_descriptor, 0);
+    }
+
     _socket_impl->do_read(std::move(h));
 }
 
-std::vector<boost::asio::const_buffer>& socket::tx_buffers()
+std::vector<boost::asio::const_buffer>* socket::tx_buffers()
 {
-    return _socket_impl->_tx_buffers;
+    if (!_socket_impl) return nullptr;
+    return &_socket_impl->_tx_buffers;
 }
 
-std::vector<boost::asio::mutable_buffer>& socket::rx_buffers()
+std::vector<boost::asio::mutable_buffer>* socket::rx_buffers()
 {
-    return _socket_impl->_rx_buffers;
+    if (!_socket_impl) return nullptr;
+    return &_socket_impl->_rx_buffers;
 }
