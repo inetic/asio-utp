@@ -12,6 +12,9 @@ requirements. Such as [`async_read`], [`async_write`], [`ssl::stream`], ...
 Also similar to Asio's TCP sockets, `utp::socket`'s `async` API supports
 callbacks, futures and coroutines as completion tokens.
 
+The `asio_utp::udp_multiplexer` can be used to perform non uTP sending and
+receiving of UDP datagrams.
+
 ## Advantages of uTP over TCP
 
 * Multiple uTP connections over one UDP port implies
@@ -65,20 +68,19 @@ For more detailed instructions, have a look at the `.circleci/config.yml` file.
     asio_utp::socket --- asio_utp::socket_impl ---+
                                                    \
     asio_utp::socket --- asio_utp::socket_impl -----+--- asio_utp::context
-                                                   /            /
-    asio_utp::socket --- asio_utp::socket_impl ---+            /
-                                                              /
-                                          +--- asio_utp::udp_multiplexer_impl
-    asio_utp::udp_multiplexer ---+       /                    \
-                                  \     /                      \
-    asio_utp::udp_multiplexer -----+---+                asio::udp::socket
+                                                   /             \
+    asio_utp::socket --- asio_utp::socket_impl ---+               \
+                                                                   \
+                                          +----------- asio_utp::udp_multiplexer_impl
+    asio_utp::udp_multiplexer ---+       /                              \
+                                  \     /                                \
+    asio_utp::udp_multiplexer -----+---+                          asio::udp::socket
                                   /
     asio_utp::udp_multiplexer ---+
 ```
 
 ## TODO
 
-* Add API to handle non-uTP packets
 * Handle ICMP messages
 * Thread safety
 

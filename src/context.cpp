@@ -300,8 +300,8 @@ context::~context()
 
     utp_destroy(_utp_ctx);
 
-    auto& cs = asio::use_service<service>(_multiplexer->get_executor().context());
-    cs.erase_context(_local_endpoint);
+    auto& s = asio::use_service<service>(_multiplexer->get_executor().context());
+    s.erase_context(_local_endpoint);
 }
 
 void context::increment_outstanding_ops(const char* dbg)
