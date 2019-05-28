@@ -49,12 +49,18 @@ public:
 
     endpoint_type local_endpoint() const;
 
+    bool is_open() const;
+
+    void close(boost::system::error_code&);
+
+    ~udp_multiplexer();
+
 private:
     void do_receive(endpoint_type& ep, handler<size_t>&&);
     void do_send(const endpoint_type& ep, handler<size_t>&&);
 
-    std::vector<boost::asio::mutable_buffer>& rx_buffers();
-    std::vector<boost::asio::const_buffer>&   tx_buffers();
+    std::vector<boost::asio::mutable_buffer>* rx_buffers();
+    std::vector<boost::asio::const_buffer>*   tx_buffers();
 
 private:
     boost::asio::io_context* _ioc = nullptr;
@@ -68,11 +74,13 @@ auto udp_multiplexer::async_receive_from( const MutableBufferSequence& bufs
                                         , endpoint_type& ep
                                         , CompletionToken&& token)
 {
-    rx_buffers().clear();
+    if (auto rx_bufs = rx_buffers()) {
+        rx_bufs->clear();
 
-    std::copy( boost::asio::buffer_sequence_begin(bufs)
-             , boost::asio::buffer_sequence_end(bufs)
-             , std::back_inserter(rx_buffers()));
+        std::copy( boost::asio::buffer_sequence_begin(bufs)
+                 , boost::asio::buffer_sequence_end(bufs)
+                 , std::back_inserter(*rx_bufs));
+    }
 
     boost::asio::async_completion
         < CompletionToken
@@ -91,11 +99,13 @@ auto udp_multiplexer::async_send_to( const ConstBufferSequence& bufs
                                    , const endpoint_type& destination
                                    , CompletionToken&& token)
 {
-    tx_buffers().clear();
+    if (auto tx_bufs = tx_buffers()) {
+        tx_bufs->clear();
 
-    std::copy( boost::asio::buffer_sequence_begin(bufs)
-             , boost::asio::buffer_sequence_end(bufs)
-             , std::back_inserter(tx_buffers()));
+        std::copy( boost::asio::buffer_sequence_begin(bufs)
+                 , boost::asio::buffer_sequence_end(bufs)
+                 , std::back_inserter(*tx_bufs));
+    }
 
     boost::asio::async_completion
         < CompletionToken
