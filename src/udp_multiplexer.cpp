@@ -103,6 +103,11 @@ void udp_multiplexer::close(boost::system::error_code& ec)
         _state->tx_handler.post(asio::error::operation_aborted, 0);
     }
 
+    // `_state` may be kept from being destroyed by handlers, so make sure we
+    // don't unnecessarily keep the udp_multiplexer_impl from being destroyed
+    // as well.
+    _state->impl = nullptr;
+
     _state = nullptr;
 }
 

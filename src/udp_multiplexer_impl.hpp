@@ -63,11 +63,7 @@ public:
 
     size_t available(sys::error_code&) const;
 
-    ~udp_multiplexer_impl() {
-        if (_debug) {
-            std::cerr << this << " ~udp_multiplexer_impl\n";
-        }
-    }
+    ~udp_multiplexer_impl();
 
 private:
     void start_receiving();
@@ -81,6 +77,12 @@ private:
     std::vector<uint8_t> _rx_back_buffer;
     bool _debug = false;
 };
+
+} // asio_udp namespace
+
+#include "service.hpp"
+
+namespace asio_utp {
 
 inline udp_multiplexer_impl::udp_multiplexer_impl(asio::ip::udp::socket s)
     : _udp_socket(std::move(s))
@@ -169,6 +171,16 @@ inline
 size_t udp_multiplexer_impl::available(sys::error_code& ec) const
 {
     return _udp_socket.available(ec);
+}
+
+inline
+udp_multiplexer_impl::~udp_multiplexer_impl() {
+    if (_debug) {
+        std::cerr << this << " ~udp_multiplexer_impl\n";
+    }
+
+    auto& s = asio::use_service<service>(_udp_socket.get_executor().context());
+    s.erase_multiplexer(local_endpoint());
 }
 
 } // asio_utp

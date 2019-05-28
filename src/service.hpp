@@ -1,12 +1,12 @@
 #pragma once
 
 #include <boost/asio.hpp>
-#include "udp_multiplexer_impl.hpp"
 #include "namespaces.hpp"
 
 namespace asio_utp {
 
 class context;
+class udp_multiplexer_impl;
 
 class service : public asio::execution_context::service {
 public:
@@ -45,6 +45,7 @@ private:
 
 } // namespace
 
+#include "udp_multiplexer_impl.hpp"
 #include "context.hpp"
 
 namespace asio_utp {
@@ -69,7 +70,6 @@ service::maybe_create_context(Executor& ex, const endpoint_type& ep)
 inline
 void service::erase_context(endpoint_type ep)
 {
-    erase_multiplexer(ep);
     _contexts.erase(ep);
 }
 
