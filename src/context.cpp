@@ -268,19 +268,17 @@ void context::on_read( const sys::error_code& read_ec
 
     sockaddr_storage src_addr = util::to_sockaddr(ep);
 
-    bool handled = utp_process_udp( _utp_ctx
-                                  , (unsigned char*) data.data()
-                                  , data.size()
-                                  , (sockaddr*) &src_addr
-                                  , util::sockaddr_size(src_addr));
+    // XXX: This returns a boolean whether the data were handled or not.
+    // May be good to use it to decide whether to pass the data to other
+    // multiplexers.
+    utp_process_udp( _utp_ctx
+                   , (unsigned char*) data.data()
+                   , data.size()
+                   , (sockaddr*) &src_addr
+                   , util::sockaddr_size(src_addr));
 
     if (!_multiplexer->available(ec)) {
         utp_issue_deferred_acks(_utp_ctx);
-    }
-
-    if (!handled) {
-        // TODO: Add some way to the user to handle these packets.
-        std::cerr << "Unhandled UDP packet" << std::endl;
     }
 
     if (_outstanding_op_count) start_receiving();
