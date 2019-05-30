@@ -5,10 +5,13 @@ include(ExternalProject)
 option(ASIO_UTP_WITH_TESTS    "Build tests" ON)
 option(ASIO_UTP_WITH_EXAMPLES "Build examples" ON)
 option(ASIO_UTP_DEBUG_LOGGING "Enable debug logging" OFF)
+option(ASIO_UTP_WITH_ASAN     "Build with Address sanitizer" OFF)
 
 add_definitions(-DBOOST_COROUTINES_NO_DEPRECATION_WARNING)
 
-set(SANITIZER_FLAGS "-fno-omit-frame-pointer -fsanitize=address")
+if (ASIO_UTP_WITH_ASAN)
+    set(SANITIZER_FLAGS "-fno-omit-frame-pointer -fsanitize=address")
+endif()
 
 set(CMAKE_CXX_FLAGS_DEBUG    "${CMAKE_CXX_FLAGS_DEBUG}           ${SANITIZER_FLAGS}")
 set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_STATIC_LINKER_FLAGS_DEBUG} ${SANITIZER_FLAGS}")
