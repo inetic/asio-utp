@@ -1,4 +1,5 @@
 #include <asio_utp/socket.hpp>
+#include <asio_utp/log.hpp>
 #include "service.hpp"
 #include "context.hpp"
 #include "util.hpp"
@@ -16,7 +17,7 @@ socket_impl::socket_impl(socket* owner)
     , _utp_socket(nullptr)
 {
     if (_debug) {
-        cerr << this << " socket_impl::socket_impl()\n";
+        log(this, " socket_impl::socket_impl()");
     }
 }
 
@@ -25,6 +26,11 @@ void socket_impl::bind(const endpoint_type& ep)
 {
     assert(!_context);
     _context = _service.maybe_create_context(_ioc, ep);
+
+    if (_debug) {
+        log(this, " socket_impl::bind() _context:", _context);
+    }
+
     _context->increment_use_count();
 }
 
@@ -37,7 +43,10 @@ void socket_impl::on_connect()
 void socket_impl::on_receive(const unsigned char* buf, size_t size)
 {
     if (_debug) {
-        cerr << this << " socket_impl::on_receive\n";
+        log( this, " socket_impl::on_receive "
+           , "_recv_handler:", bool(_recv_handler), " "
+           , "size:", size, " "
+           , "_debug:", _debug);
     }
 
     using asio::const_buffer;
@@ -83,7 +92,7 @@ void socket_impl::on_receive(const unsigned char* buf, size_t size)
 void socket_impl::on_accept(void* usocket)
 {
     if (_debug) {
-        cerr << this << " socket_impl::on_accept\n";
+        log(this, " socket_impl::on_accept utp_socket:", usocket);
     }
 
     assert(!_utp_socket);
@@ -122,6 +131,10 @@ void socket_impl::dispatch_op(Handler& h, const char* dbg, const sys::error_code
 
 void socket_impl::do_write(handler<size_t> h)
 {
+    if (_debug) {
+        log(this, " socket_impl::do_write");
+    }
+
     assert(!_send_handler);
 
     if (!_utp_socket) {
@@ -164,7 +177,7 @@ void socket_impl::do_write(handler<size_t> h)
 void socket_impl::on_writable()
 {
     if (_debug) {
-        cerr << this << " socket_impl::on_writable\n";
+        log(this, " socket_impl::on_writable");
     }
 
     if (!_send_handler) return;
@@ -181,7 +194,7 @@ static size_t buffers_size(const Bufs& bufs) {
 void socket_impl::do_read(handler<size_t> h)
 {
     if (_debug) {
-        cerr << this << " socket_impl::do_read\n";
+        log(this, " socket_impl::do_read");
     }
 
     assert(!_recv_handler);
@@ -226,6 +239,10 @@ void socket_impl::do_read(handler<size_t> h)
 
 void socket_impl::do_accept(handler<> h)
 {
+    if (_debug) {
+        log(this, " socket_impl::do_accept");
+    }
+
     // TODO: Which error code to call `h` with?
     assert(_context);
     assert(!_accept_handler);
@@ -245,7 +262,7 @@ asio::ip::udp::endpoint socket_impl::local_endpoint() const
 void socket_impl::close()
 {
     if (_debug) {
-        cerr << this << " socket_impl::close()\n";
+        log(this, " socket_impl::close()");
     }
 
     if (_closed) return;
@@ -259,7 +276,7 @@ void socket_impl::close()
 void socket_impl::on_eof()
 {
     if (_debug) {
-        cerr << this << " socket_impl::on_eof\n";
+        log(this, " socket_impl::on_eof");
     }
 
     close_with_error(asio::error::connection_reset);
@@ -271,10 +288,9 @@ void socket_impl::on_eof()
 void socket_impl::on_destroy()
 {
     if (_debug) {
-        cerr << this << " socket_impl::on_destroy"
-            << " refcount:" << asio_utp::weak_from_this(this).use_count()
-            << " _self:" << _self.get()
-            << "\n";
+        log( this, " socket_impl::on_destroy"
+           , " refcount:", asio_utp::weak_from_this(this).use_count()
+           , " _self:", _self.get());
     }
 
     assert(_utp_socket);
@@ -299,8 +315,8 @@ void socket_impl::on_destroy()
 void socket_impl::close_with_error(const sys::error_code& ec)
 {
     if (_debug) {
-        cerr << this << " socket_impl::close_with_error "
-            "_utp_socket:" << _utp_socket << " _self:" << _self.get() << "\n";
+        log(this, " socket_impl::close_with_error "
+            "_utp_socket:", _utp_socket, " _self:", _self.get());
     }
 
     if (_utp_socket) {
@@ -334,7 +350,7 @@ void socket_impl::close_with_error(const sys::error_code& ec)
 socket_impl::~socket_impl()
 {
     if (_debug) {
-        cerr << this << " socket_impl::~socket_impl()\n";
+        log(this, " socket_impl::~socket_impl()");
     }
 
     if (_utp_socket) {

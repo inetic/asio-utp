@@ -4,6 +4,7 @@
 #include <boost/intrusive/list.hpp>
 #include "namespaces.hpp"
 #include "weak_from_this.hpp"
+#include <asio_utp/log.hpp>
 #include <iostream>
 
 namespace asio_utp {
@@ -88,8 +89,7 @@ inline udp_multiplexer_impl::udp_multiplexer_impl(asio::ip::udp::socket s)
     : _udp_socket(std::move(s))
 {
     if (_debug) {
-        std::cerr << this << " udp_multiplexer_impl("
-            << _udp_socket.local_endpoint() << ")\n";
+        log(this, " udp_multiplexer_impl(", _udp_socket.local_endpoint(), ")");
     }
 
     if (!_udp_socket.non_blocking()) {
@@ -176,7 +176,7 @@ size_t udp_multiplexer_impl::available(sys::error_code& ec) const
 inline
 udp_multiplexer_impl::~udp_multiplexer_impl() {
     if (_debug) {
-        std::cerr << this << " ~udp_multiplexer_impl\n";
+        log(this, " ~udp_multiplexer_impl");
     }
 
     auto& s = asio::use_service<service>(_udp_socket.get_executor().context());
