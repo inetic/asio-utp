@@ -204,7 +204,7 @@ context::context(shared_ptr<udp_multiplexer_impl> m)
 
     utp_context_set_userdata(_utp_ctx, this);
 
-#if ASIO_UTP_DEBUG_LOGGING
+#if UTP_DEBUG_LOGGING
     utp_set_callback(_utp_ctx, UTP_LOG,             &callback_log);
     //utp_context_set_option(_utp_ctx, UTP_LOG_MTU,    1);
     utp_context_set_option(_utp_ctx, UTP_LOG_NORMAL, 1);

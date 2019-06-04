@@ -4,7 +4,8 @@ include(ExternalProject)
 
 option(ASIO_UTP_WITH_TESTS    "Build tests" ON)
 option(ASIO_UTP_WITH_EXAMPLES "Build examples" ON)
-option(ASIO_UTP_DEBUG_LOGGING "Enable debug logging" OFF)
+option(ASIO_UTP_DEBUG_LOGGING "Enable debug logging from asio_utp" OFF)
+option(UTP_DEBUG_LOGGING      "Enable debug logging from libutp" OFF)
 option(ASIO_UTP_WITH_ASAN     "Build with Address sanitizer" OFF)
 
 add_definitions(-DBOOST_COROUTINES_NO_DEPRECATION_WARNING)
@@ -22,7 +23,11 @@ endif()
 
 if (ASIO_UTP_DEBUG_LOGGING)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DASIO_UTP_DEBUG_LOGGING")
-    set(UTP_DEBUG_LOGGING "-DUTP_DEBUG_LOGGING")
+endif()
+
+if (UTP_DEBUG_LOGGING)
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -DUTP_DEBUG_LOGGING=1")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUTP_DEBUG_LOGGING=1")
 endif()
 
 #---------------------------------------------------------------------
@@ -46,7 +51,7 @@ set(libutp_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/libutp/utp_internal.cpp"
 file(GLOB asio_utp_sources "./src/*.cpp")
 
 set_source_files_properties(${libutp_sources} PROPERTIES COMPILE_FLAGS
-    "-Wno-sign-compare -DPOSIX -fno-exceptions -fno-rtti -O3 ${UTP_DEBUG_LOGGING}")
+    "-Wno-sign-compare -DPOSIX -fno-exceptions -fno-rtti -O3")
 
 add_library(asio_utp ${asio_utp_sources} ${libutp_sources})
 
