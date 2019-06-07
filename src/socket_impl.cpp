@@ -379,6 +379,10 @@ socket_impl::~socket_impl()
 
 void socket_impl::do_connect(const endpoint_type& ep, handler<> h)
 {
+    if (_debug) {
+        log(this, " socket_impl::do_connect ep:", ep);
+    }
+
     assert(!_utp_socket);
 
     setup_op(_connect_handler, move(h), "connect");

@@ -70,6 +70,10 @@ private:
     void start_receiving();
     void flush_handlers(const sys::error_code& ec, size_t size);
 
+    // For debugging only
+    static
+    std::string to_hex(uint8_t*, size_t);
+
 private:
     asio::ip::udp::socket _udp_socket;
     recv_handlers _recv_handlers;
@@ -139,6 +143,14 @@ inline void udp_multiplexer_impl::start_receiving()
 inline
 void udp_multiplexer_impl::flush_handlers(const sys::error_code& ec, size_t size)
 {
+    if (_debug) {
+        log(this, " udp_multiplexer::flush_handlers "
+            "ec:", ec.message(), " size:", size, " from:", _rx_endpoint);
+        if (!ec) {
+            log(this, "    ", to_hex((uint8_t*)_rx_buffer.data(), size));
+        }
+    }
+
     if (ec) size = 0;
 
     _rx_buffer.resize(size);
@@ -160,6 +172,13 @@ std::size_t udp_multiplexer_impl::send_to( const ConstBufferSequence& buffers
                                          , asio::socket_base::message_flags flags
                                          , sys::error_code& ec)
 {
+    if (_debug) {
+        log(this, " udp_multiplexer::send_to");
+        for (auto b : buffers) {
+            log(this, "    ", to_hex((uint8_t*)b.data(), b.size()));
+        }
+    }
+
     return _udp_socket.send_to(buffers, destination, flags, ec);
 }
 
@@ -187,6 +206,18 @@ udp_multiplexer_impl::~udp_multiplexer_impl() {
 
     auto& s = asio::use_service<service>(_udp_socket.get_executor().context());
     s.erase_multiplexer(local_endpoint());
+}
+
+inline
+std::string udp_multiplexer_impl::to_hex(uint8_t* data, size_t size)
+{
+    std::stringstream ss;
+    static const char chs[] = "0123456789abcdef";
+    for (size_t i = 0; i < size; ++i) {
+        auto ch = data[i];
+        ss << chs[(ch >> 4) & 0xf] << chs[ch & 0xf];
+    }
+    return ss.str();
 }
 
 } // asio_utp

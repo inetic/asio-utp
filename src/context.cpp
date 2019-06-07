@@ -263,7 +263,8 @@ void context::on_read( const sys::error_code& read_ec
                      , const vector<uint8_t>& data)
 {
     if (_debug) {
-        log(this, " context on_read data.size:", data.size());
+        log(this, " context on_read data.size:", data.size()
+                , " from:", ep);
     }
 
     sys::error_code ec;
