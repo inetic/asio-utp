@@ -44,10 +44,15 @@ socket::socket(socket&& other)
 asio_utp::socket& socket::operator=(socket&& other)
 {
     assert(!_ioc || !other._ioc || _ioc == other._ioc);
-    assert(other._socket_impl->_owner);
+
     _ioc = other._ioc;
     _socket_impl = move(other._socket_impl);
-    _socket_impl->_owner = this;
+
+    if (_socket_impl) {
+        assert(other._socket_impl->_owner);
+        _socket_impl->_owner = this;
+    }
+
     return *this;
 }
 

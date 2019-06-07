@@ -27,6 +27,7 @@ public:
     udp_multiplexer(boost::asio::io_context&);
 
     void bind(const endpoint_type& local_endpoint, boost::system::error_code&);
+    void bind(const udp_multiplexer&, boost::system::error_code&);
 
     template< typename MutableBufferSequence
             , typename CompletionToken>

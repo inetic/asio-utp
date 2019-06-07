@@ -17,6 +17,16 @@ struct udp_multiplexer::state {
     vector<asio::const_buffer>   tx_buffers;
 
     std::shared_ptr<udp_multiplexer_impl> impl;
+
+    void handle_read( const sys::error_code& ec
+                    , const endpoint_type& ep
+                    , const std::vector<uint8_t>& v) {
+        if (!rx_handler) return;
+        *rx_ep = ep;
+        rx_ep = nullptr;
+        size_t size = asio::buffer_copy(rx_buffers, asio::buffer(v));
+        rx_handler.post(ec, size);
+    }
 };
 
 udp_multiplexer::udp_multiplexer( boost::asio::io_context& ioc)
@@ -26,7 +36,13 @@ udp_multiplexer::udp_multiplexer( boost::asio::io_context& ioc)
 void udp_multiplexer::bind( const endpoint_type& local_ep
                           , sys::error_code& ec)
 {
+    using namespace std::placeholders;
+
     assert(_ioc);
+
+    assert(!_state /* TODO: return error or rebind? */);
+    sys::error_code ec_ignored;
+    if (_state) close(ec_ignored);
 
     _state = make_shared<state>();
 
@@ -34,17 +50,29 @@ void udp_multiplexer::bind( const endpoint_type& local_ep
         asio::use_service<service>(*_ioc)
         .maybe_create_udp_multiplexer(*_ioc, local_ep);
 
-    _state->recv_entry.handler =
-        [s = _state] ( const sys::error_code& ec
-                     , const endpoint_type& ep
-                     , const std::vector<uint8_t>& v)
-        {
-            if (!s->rx_handler) return;
-            *s->rx_ep = ep;
-            s->rx_ep = nullptr;
-            size_t size = asio::buffer_copy(s->rx_buffers, asio::buffer(v));
-            s->rx_handler.post(ec, size);
-        };
+    _state->recv_entry.handler
+        = std::bind(&state::handle_read, _state, _1, _2, _3);
+}
+
+void udp_multiplexer::bind( const udp_multiplexer& other
+                          , sys::error_code& ec)
+{
+    using namespace std::placeholders;
+
+    assert(_ioc);
+    assert(_ioc == other._ioc);
+    assert(other._state);
+    assert(other._state->impl);
+
+    assert(!_state /* TODO: return error or rebind? */);
+    sys::error_code ec_ignored;
+    if (_state) close(ec_ignored);
+
+    _state = make_shared<state>();
+    _state->impl = other._state->impl;
+
+    _state->recv_entry.handler
+        = std::bind(&state::handle_read, _state, _1, _2, _3);
 }
 
 shared_ptr<udp_multiplexer_impl> udp_multiplexer::impl() const
