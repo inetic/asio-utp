@@ -79,10 +79,23 @@ socket::~socket()
     if (is_open()) _socket_impl->close();
 }
 
-void socket::do_connect(const endpoint_type& ep, handler<>&& h)
+void socket::do_connect(const endpoint_type& ep_, handler<>&& h)
 {
     if (!_socket_impl) {
         return h.post(asio::error::bad_descriptor);
+    }
+
+    auto ep = ep_;
+
+    // Libutp can't connect to an unspecified IP address. But it seems
+    // (https://tools.ietf.org/html/rfc5735#section-3) it's OK if we connect to
+    // "this" host instead.
+    if (ep.address().is_unspecified()) {
+        if (ep.address().is_v4()) {
+            ep.address(asio::ip::address_v4::loopback());
+        } else {
+            ep.address(asio::ip::address_v6::loopback());
+        }
     }
 
     _socket_impl->do_connect(ep, std::move(move(h)));
