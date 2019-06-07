@@ -309,7 +309,11 @@ do_listen(
 
     for(;;)
     {
-        utp::socket socket(ioc, endpoint);
+        utp::socket socket(ioc);
+        socket.bind(endpoint, ec);
+
+        if(ec) fail(ec, "bind");
+
         socket.async_accept(yield[ec]);
 
         if(ec)

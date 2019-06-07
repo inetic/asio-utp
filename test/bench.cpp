@@ -141,7 +141,10 @@ typename Proto::socket connect( asio::io_context& ioc
                               , asio::yield_context yield)
 {
     auto remote_ep = parse_endpoint<Proto>(remote_ep_s);
-    typename Proto::socket socket(ioc, {asio::ip::address_v4::any(), 0});
+    typename Proto::socket socket(ioc);
+    boost::system::error_code ec;
+    socket.bind({asio::ip::address_v4::any(), 0}, ec);
+    assert(!ec);
     socket.async_connect(remote_ep, yield);
     return socket;
 }
@@ -172,7 +175,10 @@ template<> struct Async<utp::protocol> {
     {
         auto local_ep = parse_endpoint<utp::protocol>(local_ep_s);
     
-        utp::socket socket(ioc, local_ep);
+        boost::system::error_code ec;
+        utp::socket socket(ioc);
+        socket.bind(local_ep, ec);
+        assert(!ec);
         socket.async_accept(yield);
     
         return socket;

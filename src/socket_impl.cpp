@@ -1,5 +1,6 @@
 #include <asio_utp/socket.hpp>
 #include <asio_utp/log.hpp>
+#include <asio_utp/udp_multiplexer.hpp>
 #include "service.hpp"
 #include "context.hpp"
 #include "util.hpp"
@@ -12,9 +13,8 @@ using namespace asio_utp;
 
 socket_impl::socket_impl(socket* owner)
     : _ioc(owner->get_io_service())
-    , _owner(owner)
     , _service(asio::use_service<service>(_ioc.get_executor().context()))
-    , _utp_socket(nullptr)
+    , _owner(owner)
 {
     if (_debug) {
         log(this, " socket_impl::socket_impl()");
@@ -26,6 +26,18 @@ void socket_impl::bind(const endpoint_type& ep)
 {
     assert(!_context);
     _context = _service.maybe_create_context(_ioc, ep);
+
+    if (_debug) {
+        log(this, " socket_impl::bind() _context:", _context);
+    }
+
+    _context->increment_use_count();
+}
+
+void socket_impl::bind(const udp_multiplexer& m)
+{
+    assert(!_context);
+    _context = _service.maybe_create_context(m.impl());
 
     if (_debug) {
         log(this, " socket_impl::bind() _context:", _context);

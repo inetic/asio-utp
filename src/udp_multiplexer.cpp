@@ -19,13 +19,20 @@ struct udp_multiplexer::state {
     std::shared_ptr<udp_multiplexer_impl> impl;
 };
 
-udp_multiplexer::udp_multiplexer( boost::asio::io_context& ioc
-                                , const endpoint_type& ep)
+udp_multiplexer::udp_multiplexer( boost::asio::io_context& ioc)
     : _ioc(&ioc)
-    , _state(make_shared<state>())
+{}
+
+void udp_multiplexer::bind( const endpoint_type& local_ep
+                          , sys::error_code& ec)
 {
+    assert(_ioc);
+
+    _state = make_shared<state>();
+
     _state->impl =
-        asio::use_service<service>(ioc).maybe_create_udp_multiplexer(ioc, ep);
+        asio::use_service<service>(*_ioc)
+        .maybe_create_udp_multiplexer(*_ioc, local_ep);
 
     _state->recv_entry.handler =
         [s = _state] ( const sys::error_code& ec
@@ -38,6 +45,12 @@ udp_multiplexer::udp_multiplexer( boost::asio::io_context& ioc
             size_t size = asio::buffer_copy(s->rx_buffers, asio::buffer(v));
             s->rx_handler.post(ec, size);
         };
+}
+
+shared_ptr<udp_multiplexer_impl> udp_multiplexer::impl() const
+{
+    assert(_state);
+    return _state->impl;
 }
 
 void udp_multiplexer::do_send(const endpoint_type& dst, handler<size_t>&& h)

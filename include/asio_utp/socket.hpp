@@ -7,6 +7,7 @@
 namespace asio_utp {
 
 class socket_impl;
+class udp_multiplexer;
 
 class socket {
 public:
@@ -19,11 +20,13 @@ public:
     socket& operator=(const socket&) = delete;
 
     socket(socket&&);
-    //socket(socket&&) = default;
     socket& operator=(socket&&);
-    //socket& operator=(socket&&) = default;
 
-    socket(boost::asio::io_context&, const endpoint_type&);
+    socket(boost::asio::io_context&);
+
+    void bind(const endpoint_type&, boost::system::error_code&);
+
+    void bind(const udp_multiplexer&, boost::system::error_code&);
 
     template<typename CompletionToken>
     void async_connect(const endpoint_type&, CompletionToken&&);

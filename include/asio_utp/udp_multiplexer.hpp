@@ -6,6 +6,7 @@
 namespace asio_utp {
 
 class udp_multiplexer_impl;
+class socket_impl;
 
 class udp_multiplexer {
 private:
@@ -23,7 +24,9 @@ public:
     udp_multiplexer(udp_multiplexer&&) = default;
     udp_multiplexer& operator=(udp_multiplexer&&) = default;
 
-    udp_multiplexer(boost::asio::io_context&, const endpoint_type&);
+    udp_multiplexer(boost::asio::io_context&);
+
+    void bind(const endpoint_type& local_endpoint, boost::system::error_code&);
 
     template< typename MutableBufferSequence
             , typename CompletionToken>
@@ -61,6 +64,9 @@ private:
 
     std::vector<boost::asio::mutable_buffer>* rx_buffers();
     std::vector<boost::asio::const_buffer>*   tx_buffers();
+
+    friend class socket_impl;
+    std::shared_ptr<udp_multiplexer_impl> impl() const;
 
 private:
     boost::asio::io_context* _ioc = nullptr;

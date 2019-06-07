@@ -24,6 +24,9 @@ public:
     std::shared_ptr<::asio_utp::context>
     maybe_create_context(Executor&, const endpoint_type&);
 
+    std::shared_ptr<::asio_utp::context>
+    maybe_create_context(std::shared_ptr<udp_multiplexer_impl>);
+
     void erase_context(endpoint_type ep);
 
     template<class Executor>
@@ -61,10 +64,7 @@ service::maybe_create_context(Executor& ex, const endpoint_type& ep)
 
     auto m  = maybe_create_udp_multiplexer(ex, ep);
 
-    auto ctx = std::make_shared<::asio_utp::context>(std::move(m));
-    _contexts[ctx->local_endpoint()] = ctx;
-
-    return ctx;
+    return maybe_create_context(std::move(m));
 }
 
 inline

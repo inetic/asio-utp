@@ -26,7 +26,11 @@ BOOST_AUTO_TEST_CASE(comm_no_block)
 {
     asio::io_context ioc;
 
-    utp::socket s(ioc, {ip::address_v4::loopback(), 0});
+    sys::error_code ec;
+    utp::socket s(ioc);
+    s.bind({ip::address_v4::loopback(), 0}, ec);
+
+    BOOST_REQUIRE(!ec);
 
     // When there are no async actions waiting to be completed, this shouldn't
     // block.
@@ -37,8 +41,18 @@ BOOST_AUTO_TEST_CASE(comm_server_reads)
 {
     asio::io_context ioc;
 
-    utp::socket server_s(ioc, {ip::address_v4::loopback(), 0});
-    utp::socket client_s(ioc, {ip::address_v4::loopback(), 0});
+    utp::socket server_s(ioc);
+    utp::socket client_s(ioc);
+
+    {
+        sys::error_code ec1, ec2;
+
+        server_s.bind({ip::address_v4::loopback(), 0}, ec1);
+        client_s.bind({ip::address_v4::loopback(), 0}, ec2);
+
+        BOOST_REQUIRE(!ec1);
+        BOOST_REQUIRE(!ec2);
+    }
 
     auto server_ep = server_s.local_endpoint();
 
@@ -60,7 +74,7 @@ BOOST_AUTO_TEST_CASE(comm_server_reads)
         BOOST_REQUIRE(!ec);
 
         string rx_msg(tx_msg.size(), '\0');
-        size_t size = server_s.async_read_some(buffer(rx_msg), yield[ec]);
+        server_s.async_read_some(buffer(rx_msg), yield[ec]);
         BOOST_REQUIRE(!ec);
         BOOST_REQUIRE_EQUAL(rx_msg, tx_msg);
 
@@ -89,8 +103,18 @@ BOOST_AUTO_TEST_CASE(comm_exchange)
 {
     asio::io_context ioc;
 
-    utp::socket server_s(ioc, {ip::address_v4::loopback(), 0});
-    utp::socket client_s(ioc, {ip::address_v4::loopback(), 0});
+    utp::socket server_s(ioc);
+    utp::socket client_s(ioc);
+
+    {
+        sys::error_code ec1, ec2;
+
+        server_s.bind({ip::address_v4::loopback(), 0}, ec1);
+        client_s.bind({ip::address_v4::loopback(), 0}, ec2);
+
+        BOOST_REQUIRE(!ec1);
+        BOOST_REQUIRE(!ec2);
+    }
 
     auto server_ep = server_s.local_endpoint();
 
@@ -149,8 +173,18 @@ BOOST_AUTO_TEST_CASE(comm_test2)
 {
     asio::io_context ioc;
 
-    utp::socket server_s(ioc, {ip::address_v4::loopback(), 0});
-    utp::socket client_s(ioc, {ip::address_v4::loopback(), 0});
+    utp::socket server_s(ioc);
+    utp::socket client_s(ioc);
+
+    {
+        sys::error_code ec1, ec2;
+
+        server_s.bind({ip::address_v4::loopback(), 0}, ec1);
+        client_s.bind({ip::address_v4::loopback(), 0}, ec2);
+
+        BOOST_REQUIRE(!ec1);
+        BOOST_REQUIRE(!ec2);
+    }
 
     auto server_ep = server_s.local_endpoint();
 
@@ -203,7 +237,13 @@ BOOST_AUTO_TEST_CASE(socket_local_random_bind)
 {
     asio::io_context ioc;
 
-    utp::socket s(ioc, {ip::address_v4::loopback(), 0});
+    utp::socket s(ioc);
+
+    sys::error_code ec;
+
+    s.bind({ip::address_v4::loopback(), 0}, ec);
+
+    BOOST_REQUIRE(!ec);
 
     BOOST_REQUIRE(s.local_endpoint().port());
 }
@@ -213,8 +253,18 @@ BOOST_AUTO_TEST_CASE(comm_same_endpoint_multiplex)
 {
     asio::io_context ioc;
 
-    utp::socket server1(ioc, {ip::address_v4::loopback(), 0});
-    utp::socket server2(ioc, server1.local_endpoint());
+    utp::socket server1(ioc);
+    utp::socket server2(ioc);
+
+    {
+        sys::error_code ec1, ec2;
+
+        server1.bind({ip::address_v4::loopback(), 0}, ec1);
+        BOOST_REQUIRE(!ec1);
+
+        server2.bind(server1.local_endpoint(), ec2);
+        BOOST_REQUIRE(!ec2);
+    }
 
     asio::spawn(ioc, [&](asio::yield_context yield) {
         sys::error_code ec;
@@ -231,8 +281,18 @@ BOOST_AUTO_TEST_CASE(comm_same_endpoint_multiplex)
     asio::spawn(ioc, [&](asio::yield_context yield) {
         sys::error_code ec;
 
-        utp::socket client1(ioc, {ip::address_v4::loopback(), 0});
-        utp::socket client2(ioc, client1.local_endpoint());
+        utp::socket client1(ioc);
+        utp::socket client2(ioc);
+
+        {
+            sys::error_code ec1, ec2;
+
+            client1.bind({ip::address_v4::loopback(), 0}, ec1);
+            BOOST_REQUIRE(!ec1);
+
+            client2.bind(client1.local_endpoint(), ec2);
+            BOOST_REQUIRE(!ec2);
+        }
 
         client1.async_connect(server1.local_endpoint(), yield[ec]);
         BOOST_REQUIRE(!ec);
@@ -251,8 +311,18 @@ BOOST_AUTO_TEST_CASE(comm_send_large_data)
 {
     asio::io_context ioc;
 
-    utp::socket server_s(ioc, {ip::address_v4::loopback(), 0});
-    utp::socket client_s(ioc, {ip::address_v4::loopback(), 0});
+    utp::socket server_s(ioc);
+    utp::socket client_s(ioc);
+
+    {
+        sys::error_code ec1, ec2;
+
+        server_s.bind({ip::address_v4::loopback(), 0}, ec1);
+        BOOST_REQUIRE(!ec1);
+
+        client_s.bind({ip::address_v4::loopback(), 0}, ec2);
+        BOOST_REQUIRE(!ec2);
+    }
 
     auto server_ep = server_s.local_endpoint();
 
@@ -318,7 +388,13 @@ BOOST_AUTO_TEST_CASE(comm_abort_accept)
 {
     asio::io_context ioc;
 
-    utp::socket socket(ioc, {ip::address_v4::loopback(), 0});
+    utp::socket socket(ioc);
+
+    {
+        sys::error_code ec;
+        socket.bind({ip::address_v4::loopback(), 0}, ec);
+        BOOST_REQUIRE(!ec);
+    }
 
     asio::spawn(ioc, [&](asio::yield_context yield) {
         sys::error_code ec;
@@ -340,8 +416,18 @@ BOOST_AUTO_TEST_CASE(comm_abort_connect)
 {
     asio::io_context ioc;
 
-    utp::socket client_s(ioc, {ip::address_v4::loopback(), 0});
-    utp::socket server_s(ioc, {ip::address_v4::loopback(), 0});
+    utp::socket client_s(ioc);
+    utp::socket server_s(ioc);
+
+    {
+        sys::error_code ec1, ec2;
+
+        server_s.bind({ip::address_v4::loopback(), 0}, ec1);
+        BOOST_REQUIRE(!ec1);
+
+        client_s.bind({ip::address_v4::loopback(), 0}, ec2);
+        BOOST_REQUIRE(!ec2);
+    }
 
     asio::spawn(ioc, [&](asio::yield_context yield) {
         sys::error_code ec;
@@ -365,8 +451,18 @@ BOOST_AUTO_TEST_CASE(comm_abort_recv)
 {
     asio::io_context ioc;
 
-    utp::socket server_s(ioc, {ip::address_v4::loopback(), 0});
-    utp::socket client_s(ioc, {ip::address_v4::loopback(), 0});
+    utp::socket server_s(ioc);
+    utp::socket client_s(ioc);
+
+    {
+        sys::error_code ec1, ec2;
+
+        server_s.bind({ip::address_v4::loopback(), 0}, ec1);
+        BOOST_REQUIRE(!ec1);
+
+        client_s.bind({ip::address_v4::loopback(), 0}, ec2);
+        BOOST_REQUIRE(!ec2);
+    }
 
     auto server_ep = server_s.local_endpoint();
 
@@ -442,8 +538,18 @@ BOOST_AUTO_TEST_CASE(comm_server_eof)
 {
     asio::io_context ioc;
 
-    utp::socket server_s(ioc, {ip::address_v4::loopback(), 0});
-    utp::socket client_s(ioc, {ip::address_v4::loopback(), 0});
+    utp::socket server_s(ioc);
+    utp::socket client_s(ioc);
+
+    {
+        sys::error_code ec1, ec2;
+
+        server_s.bind({ip::address_v4::loopback(), 0}, ec1);
+        BOOST_REQUIRE(!ec1);
+
+        client_s.bind({ip::address_v4::loopback(), 0}, ec2);
+        BOOST_REQUIRE(!ec2);
+    }
 
     auto server_ep = server_s.local_endpoint();
 
@@ -474,8 +580,18 @@ BOOST_AUTO_TEST_CASE(comm_client_eof)
 {
     asio::io_context ioc;
 
-    utp::socket server_s(ioc, {ip::address_v4::loopback(), 0});
-    utp::socket client_s(ioc, {ip::address_v4::loopback(), 0});
+    utp::socket server_s(ioc);
+    utp::socket client_s(ioc);
+
+    {
+        sys::error_code ec1, ec2;
+
+        server_s.bind({ip::address_v4::loopback(), 0}, ec1);
+        BOOST_REQUIRE(!ec1);
+
+        client_s.bind({ip::address_v4::loopback(), 0}, ec2);
+        BOOST_REQUIRE(!ec2);
+    }
 
     auto server_ep = server_s.local_endpoint();
 

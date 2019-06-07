@@ -5,11 +5,32 @@
 using namespace std;
 using namespace asio_utp;
 
-socket::socket(boost::asio::io_context& ioc, const endpoint_type& ep)
+socket::socket(boost::asio::io_context& ioc)
     : _ioc(&ioc)
-    , _socket_impl(make_shared<socket_impl>(this))
+{}
+
+void socket::bind(const endpoint_type& ep, sys::error_code& ec)
 {
+    if (_socket_impl) {
+        // TODO: Is this the correct error code?
+        ec = asio::error::already_open;
+        return;
+    }
+
+    _socket_impl = make_shared<socket_impl>(this);
     _socket_impl->bind(ep);
+}
+
+void socket::bind(const udp_multiplexer& m, sys::error_code& ec)
+{
+    if (_socket_impl) {
+        // TODO: Is this the correct error code?
+        ec = asio::error::already_open;
+        return;
+    }
+
+    _socket_impl = make_shared<socket_impl>(this);
+    _socket_impl->bind(m);
 }
 
 socket::socket(socket&& other)

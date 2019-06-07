@@ -8,6 +8,7 @@ namespace asio_utp {
 class context;
 class socket;
 class service;
+class udp_multiplexer;
 
 class socket_impl : public std::enable_shared_from_this<socket_impl> {
 public:
@@ -23,6 +24,7 @@ public:
     socket_impl(socket*);
 
     void bind(const endpoint_type&);
+    void bind(const udp_multiplexer&);
 
     endpoint_type local_endpoint() const;
 

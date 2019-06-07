@@ -92,7 +92,17 @@ void server( asio::io_context& ioc
 {
     assert(argc >= 3);
 
-    utp::socket s(ioc, parse_endpoint(argv[2]));
+    utp::socket s(ioc);
+
+    sys::error_code ec;
+    auto ep = parse_endpoint(argv[2]);
+    s.bind(ep, ec);
+
+    if (ec) {
+        cerr << "Failed to bind on endpoint " << ep
+            << " ec:" << ec.message() << "\n";
+        return;
+    }
 
     cerr << "Accepting on: " << s.local_endpoint() << endl;
     s.async_accept(yield);
@@ -108,7 +118,10 @@ void client( asio::io_context& ioc
 {
     assert(argc >= 3);
 
-    utp::socket s(ioc, {ip::address_v4::loopback(), 0});
+    sys::error_code ec;
+    utp::socket s(ioc);
+    s.bind({ip::address_v4::loopback(), 0}, ec);
+    assert(!ec);
 
     auto remote_ep = parse_endpoint(argv[2]);
 

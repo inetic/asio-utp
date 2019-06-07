@@ -53,7 +53,12 @@ do_session(
 {
     beast::error_code ec;
 
-    utp::socket socket{ioc, udp::endpoint{net::ip::address_v4::any(), 0}};
+    utp::socket socket{ioc};
+
+    socket.bind(udp::endpoint{net::ip::address_v4::any(), 0}, ec);
+
+    if(ec)
+        return fail(ec, "bind");
 
     // Make the connection on the IP address we get from a lookup
     socket.async_connect(endpoint, yield[ec]);
