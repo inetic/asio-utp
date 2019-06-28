@@ -104,8 +104,6 @@ void udp_multiplexer::do_receive(endpoint_type& ep, handler<size_t>&& h)
         return h.post(asio::error::bad_descriptor, 0);
     }
 
-    auto& impl = *_state->impl;
-
     assert(!_state->rx_handler && "Only one receive operation is "
             "allowed at a time");
 

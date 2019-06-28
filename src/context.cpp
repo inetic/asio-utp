@@ -82,6 +82,9 @@ uint64 context::callback_sendto(utp_callback_arguments* a)
     }
 
     if (ec && ec != asio::error::would_block) {
+#ifndef NDEBUG
+        cerr << "asio_utp error send_to: " << ec.message() << "\n";
+#endif
         assert(0 && "TODO");
     }
 

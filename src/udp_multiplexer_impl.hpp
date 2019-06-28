@@ -75,10 +75,14 @@ private:
     std::string to_hex(uint8_t*, size_t);
 
 private:
+    struct State {
+        endpoint_type rx_endpoint;
+        std::vector<uint8_t> rx_buffer;
+    };
+
     asio::ip::udp::socket _udp_socket;
     recv_handlers _recv_handlers;
-    endpoint_type _rx_endpoint;
-    std::vector<uint8_t> _rx_buffer;
+    std::shared_ptr<State> _state;
     bool _is_receiving = false;
     bool _debug = false;
 };
@@ -91,6 +95,7 @@ namespace asio_utp {
 
 inline udp_multiplexer_impl::udp_multiplexer_impl(asio::ip::udp::socket s)
     : _udp_socket(std::move(s))
+    , _state(std::make_shared<State>())
 {
     if (_debug) {
         log(this, " udp_multiplexer_impl(", _udp_socket.local_endpoint(), ")");
@@ -116,18 +121,18 @@ inline void udp_multiplexer_impl::start_receiving()
     assert(!_is_receiving);
     _is_receiving = true;
 
-    _rx_buffer.resize(65537);
+    _state->rx_buffer.resize(65537);
 
     auto wself = asio_utp::weak_from_this(this);
 
     _udp_socket.async_receive_from
-        ( asio::buffer(_rx_buffer)
-        , _rx_endpoint
-        , [&, wself] (const sys::error_code& ec, size_t size)
+        ( asio::buffer(_state->rx_buffer)
+        , _state->rx_endpoint
+        , [&, wself, s = _state] (const sys::error_code& ec, size_t size)
           {
               if (auto self = wself.lock()) {
                   assert(_is_receiving);
-                  assert(_rx_buffer.size() == 65537);
+                  assert(_state->rx_buffer.size() == 65537);
 
                   flush_handlers(ec, size);
 
@@ -145,15 +150,15 @@ void udp_multiplexer_impl::flush_handlers(const sys::error_code& ec, size_t size
 {
     if (_debug) {
         log(this, " udp_multiplexer::flush_handlers "
-            "ec:", ec.message(), " size:", size, " from:", _rx_endpoint);
+            "ec:", ec.message(), " size:", size, " from:", _state->rx_endpoint);
         if (!ec) {
-            log(this, "    ", to_hex((uint8_t*)_rx_buffer.data(), size));
+            log(this, "    ", to_hex((uint8_t*)_state->rx_buffer.data(), size));
         }
     }
 
     if (ec) size = 0;
 
-    _rx_buffer.resize(size);
+    _state->rx_buffer.resize(size);
 
     auto recv_handlers = std::move(_recv_handlers);
 
@@ -161,7 +166,7 @@ void udp_multiplexer_impl::flush_handlers(const sys::error_code& ec, size_t size
         auto e = recv_handlers.front();
         recv_handlers.pop_front();
         assert(e.handler);
-        e.handler(ec, _rx_endpoint, _rx_buffer);
+        e.handler(ec, _state->rx_endpoint, _state->rx_buffer);
     }
 }
 
