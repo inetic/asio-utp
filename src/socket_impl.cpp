@@ -16,8 +16,11 @@ socket_impl::socket_impl(socket* owner)
     , _service(asio::use_service<service>(_ioc.get_executor().context()))
     , _owner(owner)
 {
+    static decltype(_debug_id) next_debug_id = 1;
+    _debug_id = next_debug_id++;
+
     if (_debug) {
-        log(this, " socket_impl::socket_impl()");
+        log(this, " debug_id:", _debug_id, " socket_impl::socket_impl()");
     }
 }
 
@@ -55,10 +58,9 @@ void socket_impl::on_connect()
 void socket_impl::on_receive(const unsigned char* buf, size_t size)
 {
     if (_debug) {
-        log( this, " socket_impl::on_receive "
+        log( this, " debug_id:", _debug_id, " socket_impl::on_receive "
            , "_recv_handler:", bool(_recv_handler), " "
-           , "size:", size, " "
-           , "_debug:", _debug);
+           , "size:", size);
     }
 
     using asio::const_buffer;
@@ -83,7 +85,7 @@ void socket_impl::on_receive(const unsigned char* buf, size_t size)
         src = src + c;
         total += c;
 
-        // If the recv buffer ir smaller than what we've received,
+        // If the recv buffer is smaller than what we've received,
         // we need to store it for later.
         if (buffer_size(src) != 0) {
             const unsigned char* begin = buffer_cast<const unsigned char*>(src);
@@ -196,26 +198,23 @@ void socket_impl::on_writable()
     do_write(move(_send_handler));
 }
 
-template<class Bufs>
-static size_t buffers_size(const Bufs& bufs) {
-    size_t ret = 0;
-    for (auto& b : bufs) { ret += asio::buffer_size(b); }
-    return ret;
-}
-
 void socket_impl::do_read(handler<size_t> h)
 {
     if (_debug) {
-        log(this, " socket_impl::do_read");
+        log(this, " debug_id:", _debug_id, " socket_impl::do_read ",
+            " buffer_size(_rx_buffers):", asio::buffer_size(_rx_buffers),
+            " _rx_buffer_queue.size():", _rx_buffer_queue.size(),
+            " buffer_size(_rx_buffer_queue):", asio::buffer_size(_rx_buffer_queue));
     }
 
     assert(!_recv_handler);
 
     if (!_context) {
+        // User provided an empty RX buffer => post handler right a way.
         return h.post(asio::error::bad_descriptor, 0);
     }
 
-    if (buffers_size(_rx_buffers) == 0) {
+    if (asio::buffer_size(_rx_buffers) == 0) {
         return h.post(sys::error_code(), 0);
     }
 
@@ -288,7 +287,9 @@ void socket_impl::close()
 void socket_impl::on_eof()
 {
     if (_debug) {
-        log(this, " socket_impl::on_eof");
+        log(this, " debug_id:", _debug_id, " socket_impl::on_eof",
+                " _send_handler:", bool(_send_handler),
+                " _recv_handler:", bool(_recv_handler));
     }
 
     close_with_error(asio::error::connection_reset);
@@ -300,7 +301,7 @@ void socket_impl::on_eof()
 void socket_impl::on_destroy()
 {
     if (_debug) {
-        log( this, " socket_impl::on_destroy"
+        log( this, " debug_id:", _debug_id, " socket_impl::on_destroy"
            , " refcount:", asio_utp::weak_from_this(this).use_count()
            , " _self:", _self.get());
     }
@@ -327,7 +328,7 @@ void socket_impl::on_destroy()
 void socket_impl::close_with_error(const sys::error_code& ec)
 {
     if (_debug) {
-        log(this, " socket_impl::close_with_error "
+        log(this, " debug_id:", _debug_id, " socket_impl::close_with_error "
             "_utp_socket:", _utp_socket, " _self:", _self.get());
     }
 
@@ -362,7 +363,7 @@ void socket_impl::close_with_error(const sys::error_code& ec)
 socket_impl::~socket_impl()
 {
     if (_debug) {
-        log(this, " socket_impl::~socket_impl()");
+        log(this, " debug_id:", _debug_id, " socket_impl::~socket_impl()");
     }
 
     if (_utp_socket) {
@@ -380,7 +381,7 @@ socket_impl::~socket_impl()
 void socket_impl::do_connect(const endpoint_type& ep, handler<> h)
 {
     if (_debug) {
-        log(this, " socket_impl::do_connect ep:", ep);
+        log(this, " debug_id:", _debug_id, " socket_impl::do_connect ep:", ep);
     }
 
     assert(!_utp_socket);

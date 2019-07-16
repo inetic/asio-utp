@@ -121,6 +121,7 @@ private:
 #else
     bool _debug = false;
 #endif
+    uint32_t _debug_id = 0;
 };
 
 } // namespace
