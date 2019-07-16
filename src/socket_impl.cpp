@@ -224,6 +224,9 @@ void socket_impl::do_read(handler<size_t> h)
     // but the _rx_buffers is empty, then we still post the callback with zero
     // size.
     if (_rx_buffer_queue.empty()) {
+        if (_got_eof) {
+            close_with_error(asio::error::connection_reset);
+        }
         return;
     }
 
@@ -292,7 +295,12 @@ void socket_impl::on_eof()
                 " _recv_handler:", bool(_recv_handler));
     }
 
-    close_with_error(asio::error::connection_reset);
+    assert(!_got_eof);
+    _got_eof = true;
+
+    if (_recv_handler) {
+        post_op(_recv_handler, "recv", asio::error::connection_reset, 0);
+    }
 }
 
 

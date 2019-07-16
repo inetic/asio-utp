@@ -82,6 +82,7 @@ private:
     void* _utp_socket = nullptr;
     socket* _owner = nullptr;
     bool _closed = false;
+    bool _got_eof = false;
 
     std::shared_ptr<context> _context;
 
