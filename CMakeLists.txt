@@ -10,6 +10,10 @@ option(ASIO_UTP_WITH_ASAN     "Build with Address sanitizer" OFF)
 
 add_definitions(-DBOOST_COROUTINES_NO_DEPRECATION_WARNING)
 
+# This is a static library, so don't include asio. Users need to link
+# libboost_asio either statically or as a shared library.
+add_definitions(-DBOOST_ASIO_SEPARATE_COMPILATION)
+
 if (ASIO_UTP_WITH_ASAN)
     set(SANITIZER_FLAGS "-fno-omit-frame-pointer -fsanitize=address")
 endif()
@@ -61,6 +65,12 @@ target_include_directories(asio_utp PUBLIC
     "${Boost_INCLUDE_DIR}")
 
 #---------------------------------------------------------------------
+# The static library asio_utp requires a separately compiled asio,
+# so supply one for the tests and examples.
+add_library(asio_utp_static_asio STATIC EXCLUDE_FROM_ALL "lib/asio.cpp")
+target_link_libraries(asio_utp_static_asio ${Boost_LIBRARIES})
+
+#---------------------------------------------------------------------
 if(ASIO_UTP_WITH_EXAMPLES)
     # Boost.Beast example
     add_subdirectory(example/http)
@@ -72,15 +82,15 @@ if(ASIO_UTP_WITH_TESTS)
     # Tests
     add_executable(test-util "test/util.cpp")
     target_include_directories(test-util PUBLIC "./src" "${Boost_INCLUDE_DIR}")
-    target_link_libraries(test-util ${Boost_LIBRARIES} Threads::Threads)
+    target_link_libraries(test-util ${Boost_LIBRARIES} Threads::Threads asio_utp_static_asio)
 
     # Tests
     add_executable(test-comm "test/comm.cpp")
     target_include_directories(test-comm PUBLIC "./src" "${Boost_INCLUDE_DIR}")
-    target_link_libraries(test-comm asio_utp ${Boost_LIBRARIES} Threads::Threads)
+    target_link_libraries(test-comm asio_utp ${Boost_LIBRARIES} Threads::Threads asio_utp_static_asio)
 
     # Tests
     add_executable(test-bench "test/bench.cpp")
     target_include_directories(test-bench PUBLIC "./src" "${Boost_INCLUDE_DIR}")
-    target_link_libraries(test-bench asio_utp ${Boost_LIBRARIES} Threads::Threads)
+    target_link_libraries(test-bench asio_utp ${Boost_LIBRARIES} Threads::Threads asio_utp_static_asio)
 endif() # ASIO_UTP_WITH_TESTS
