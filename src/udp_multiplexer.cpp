@@ -130,8 +130,14 @@ void udp_multiplexer::close(boost::system::error_code& ec)
         return;
     }
 
+    // Handler holds a shared_ptr to the _state, so reset it to avoid memory
+    // leaks.
+    _state->recv_entry.handler = nullptr;
+
     if (_state->recv_entry.is_linked()) {
         _state->recv_entry.unlink();
+        assert(_state->impl);
+        _state->impl->on_recv_entry_unlinked();
     }
 
     if (_state->rx_handler) {

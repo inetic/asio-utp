@@ -66,6 +66,8 @@ public:
 
     ~udp_multiplexer_impl();
 
+    void on_recv_entry_unlinked();
+
 private:
     void start_receiving();
     void flush_handlers(const sys::error_code& ec, size_t size);
@@ -116,6 +118,30 @@ void udp_multiplexer_impl::register_recv_handler(recv_entry& e)
     }
 }
 
+inline
+void udp_multiplexer_impl::on_recv_entry_unlinked()
+{
+    if (_is_receiving && _recv_handlers.empty()) {
+        // We need to do this to prevent this multiplexer from blocking
+        // in the io_context.run function.
+
+        // TODO: Unfortunately this won't work on Windows XP.
+        // See "Remarks" section in Boost.Asio documentation for
+        // basic_datagram_socket::cancel function.
+        // Another drawback is that this will cancel other async
+        // operations as well.
+        //
+        // A workaround I can think of right now is to either find
+        // out whether it is possible to invoke async_receive_from
+        // such that it doesn't block io_context.run or have another
+        // socket (or perhaps the same one?) send this socket a
+        // message to release from async_receive_from.
+        sys::error_code ec;
+        _udp_socket.cancel(ec);
+        assert(!ec);
+    }
+}
+
 inline void udp_multiplexer_impl::start_receiving()
 {
     assert(!_is_receiving);
@@ -134,7 +160,12 @@ inline void udp_multiplexer_impl::start_receiving()
                   assert(_is_receiving);
                   assert(_state->rx_buffer.size() == 65537);
 
-                  flush_handlers(ec, size);
+                  bool canceled = ec == asio::error::operation_aborted
+                               && _udp_socket.is_open();
+
+                  if (!canceled) {
+                      flush_handlers(ec, size);
+                  }
 
                   _is_receiving = false;
 
