@@ -38,7 +38,9 @@ socket::socket(socket&& other)
     , _socket_impl(move(other._socket_impl))
 {
     other._ioc = nullptr;
-    _socket_impl->_owner = this;
+    if (_socket_impl) {
+        _socket_impl->_owner = this;
+    }
 }
 
 asio_utp::socket& socket::operator=(socket&& other)
