@@ -55,7 +55,11 @@ public:
         return _udp_socket.local_endpoint();
     }
 
+#if BOOST_VERSION >= 107000
+    boost::asio::executor get_executor()
+#else
     boost::asio::io_context::executor_type get_executor()
+#endif
     {
         return _udp_socket.get_executor();
     }
