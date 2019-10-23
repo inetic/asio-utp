@@ -22,7 +22,7 @@ public:
 
     template<class Executor>
     std::shared_ptr<::asio_utp::context>
-    maybe_create_context(Executor&, const endpoint_type&);
+    maybe_create_context(Executor&, const endpoint_type&, sys::error_code& ec);
 
     std::shared_ptr<::asio_utp::context>
     maybe_create_context(std::shared_ptr<udp_multiplexer_impl>);
@@ -31,7 +31,7 @@ public:
 
     template<class Executor>
     std::shared_ptr<udp_multiplexer_impl>
-    maybe_create_udp_multiplexer(Executor&, const endpoint_type&);
+    maybe_create_udp_multiplexer(Executor&, const endpoint_type&, sys::error_code& ec);
 
     void erase_multiplexer(endpoint_type ep);
 
@@ -56,13 +56,15 @@ namespace asio_utp {
 template<class Executor>
 inline
 std::shared_ptr<::asio_utp::context>
-service::maybe_create_context(Executor& ex, const endpoint_type& ep)
+service::maybe_create_context(Executor& ex, const endpoint_type& ep, sys::error_code& ec)
 {
     auto i = _contexts.find(ep);
 
     if (i != _contexts.end()) return i->second.lock();
 
-    auto m  = maybe_create_udp_multiplexer(ex, ep);
+    auto m  = maybe_create_udp_multiplexer(ex, ep, ec);
+
+    if (ec) return nullptr;
 
     return maybe_create_context(std::move(m));
 }
@@ -76,7 +78,7 @@ void service::erase_context(endpoint_type ep)
 template<class Executor>
 inline
 std::shared_ptr<udp_multiplexer_impl>
-service::maybe_create_udp_multiplexer(Executor& ex, const endpoint_type& ep)
+service::maybe_create_udp_multiplexer(Executor& ex, const endpoint_type& ep, sys::error_code& ec)
 {
     if (_debug) {
         std::cerr << "maybe_create_udp_multiplexer " << ep << " " << _multiplexers.size() << "\n";
@@ -86,7 +88,13 @@ service::maybe_create_udp_multiplexer(Executor& ex, const endpoint_type& ep)
 
     if (i != _multiplexers.end()) return i->second.lock();
 
-    auto m = std::make_shared<udp_multiplexer_impl>(socket_type(ex, ep));
+    socket_type socket(ex);
+    socket.open(ep.protocol());
+    socket.bind(ep, ec);
+
+    if (ec) return nullptr;
+
+    auto m = std::make_shared<udp_multiplexer_impl>(std::move(socket));
     _multiplexers[m->local_endpoint()] = m;
 
     return m;

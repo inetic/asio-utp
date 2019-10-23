@@ -23,7 +23,7 @@ public:
 
     socket_impl(socket*);
 
-    void bind(const endpoint_type&);
+    void bind(const endpoint_type&, sys::error_code&);
     void bind(const udp_multiplexer&);
 
     endpoint_type local_endpoint() const;

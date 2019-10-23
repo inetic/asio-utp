@@ -17,8 +17,10 @@ void socket::bind(const endpoint_type& ep, sys::error_code& ec)
         return;
     }
 
-    _socket_impl = make_shared<socket_impl>(this);
-    _socket_impl->bind(ep);
+    auto impl = make_shared<socket_impl>(this);
+    impl->bind(ep, ec);
+    if (ec) return;
+    _socket_impl = move(impl);
 }
 
 void socket::bind(const udp_multiplexer& m, sys::error_code& ec)

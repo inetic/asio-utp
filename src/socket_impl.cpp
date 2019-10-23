@@ -25,15 +25,18 @@ socket_impl::socket_impl(socket* owner)
 }
 
 
-void socket_impl::bind(const endpoint_type& ep)
+void socket_impl::bind(const endpoint_type& ep, sys::error_code& ec)
 {
     assert(!_context);
-    _context = _service.maybe_create_context(_ioc, ep);
+    auto ctx = _service.maybe_create_context(_ioc, ep, ec);
 
     if (_debug) {
         log(this, " socket_impl::bind() _context:", _context);
     }
 
+    if (ec) return;
+
+    _context = move(ctx);
     _context->increment_use_count();
 }
 

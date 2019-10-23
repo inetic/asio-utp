@@ -44,11 +44,14 @@ void udp_multiplexer::bind( const endpoint_type& local_ep
     sys::error_code ec_ignored;
     if (_state) close(ec_ignored);
 
+    auto impl = asio::use_service<service>(*_ioc)
+        .maybe_create_udp_multiplexer(*_ioc, local_ep, ec);
+
+    if (ec) return;
+
     _state = make_shared<state>();
 
-    _state->impl =
-        asio::use_service<service>(*_ioc)
-        .maybe_create_udp_multiplexer(*_ioc, local_ep);
+    _state->impl = move(impl);
 
     _state->recv_entry.handler
         = std::bind(&state::handle_read, _state, _1, _2, _3);
