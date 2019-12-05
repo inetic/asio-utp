@@ -22,6 +22,7 @@ public:
     socket(socket&&);
     socket& operator=(socket&&);
 
+    socket(const boost::asio::executor&);
     socket(boost::asio::io_context&);
 
     void bind(const endpoint_type&, boost::system::error_code&);
@@ -48,14 +49,9 @@ public:
 
     void close();
 
-    boost::asio::io_context::executor_type get_executor() const
+    boost::asio::executor get_executor()
     {
-        return _ioc->get_executor();
-    }
-
-    boost::asio::io_context& get_io_service() const
-    {
-        return _ioc->get_executor().context();
+        return _ex;
     }
 
     // For debugging only
@@ -74,7 +70,7 @@ private:
 
 private:
     friend class socket_impl;
-    boost::asio::io_context* _ioc = nullptr;
+    boost::asio::executor _ex;
     std::shared_ptr<socket_impl> _socket_impl;
 };
 

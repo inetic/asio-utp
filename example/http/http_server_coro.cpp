@@ -321,7 +321,7 @@ do_listen(
             fail(ec, "accept");
         else
             net::spawn(
-                socket.get_executor().context(),
+                socket.get_executor(),
                 std::bind(
                     &do_session,
                     std::move(socket),

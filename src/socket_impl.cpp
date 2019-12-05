@@ -12,8 +12,8 @@ using namespace std;
 using namespace asio_utp;
 
 socket_impl::socket_impl(socket* owner)
-    : _ioc(owner->get_io_service())
-    , _service(asio::use_service<service>(_ioc.get_executor().context()))
+    : _ex(owner->get_executor())
+    , _service(asio::use_service<service>(_ex.context()))
     , _owner(owner)
 {
     static decltype(_debug_id) next_debug_id = 1;
@@ -28,7 +28,7 @@ socket_impl::socket_impl(socket* owner)
 void socket_impl::bind(const endpoint_type& ep, sys::error_code& ec)
 {
     assert(!_context);
-    auto ctx = _service.maybe_create_context(_ioc, ep, ec);
+    auto ctx = _service.maybe_create_context(_ex, ep, ec);
 
     if (_debug) {
         log(this, " socket_impl::bind() _context:", _context);

@@ -29,8 +29,12 @@ struct udp_multiplexer::state {
     }
 };
 
-udp_multiplexer::udp_multiplexer( boost::asio::io_context& ioc)
-    : _ioc(&ioc)
+udp_multiplexer::udp_multiplexer(boost::asio::io_context& ioc)
+    : _ex(ioc.get_executor())
+{}
+
+udp_multiplexer::udp_multiplexer(const boost::asio::executor& ex)
+    : _ex(ex)
 {}
 
 void udp_multiplexer::bind( const endpoint_type& local_ep
@@ -38,14 +42,14 @@ void udp_multiplexer::bind( const endpoint_type& local_ep
 {
     using namespace std::placeholders;
 
-    assert(_ioc);
-
     assert(!_state /* TODO: return error or rebind? */);
     sys::error_code ec_ignored;
     if (_state) close(ec_ignored);
 
-    auto impl = asio::use_service<service>(*_ioc)
-        .maybe_create_udp_multiplexer(*_ioc, local_ep, ec);
+    auto& ctx = _ex.context();
+
+    auto impl = asio::use_service<service>(ctx)
+        .maybe_create_udp_multiplexer(_ex, local_ep, ec);
 
     if (ec) return;
 
@@ -62,8 +66,6 @@ void udp_multiplexer::bind( const udp_multiplexer& other
 {
     using namespace std::placeholders;
 
-    assert(_ioc);
-    assert(_ioc == other._ioc);
     assert(other._state);
     assert(other._state->impl);
 

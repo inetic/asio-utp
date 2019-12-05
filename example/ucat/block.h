@@ -5,7 +5,7 @@
 
 class block {
 public:
-    block(boost::asio::io_context& ioc);
+    block(const boost::asio::executor&);
     block(const block&) = delete;
     block& operator=(const block&) = delete;
 
@@ -15,14 +15,14 @@ public:
     void wait(boost::asio::yield_context yield);
 
 private:
-    boost::asio::io_context& _ioc;
+    boost::asio::executor _ex;
     std::function<void(boost::system::error_code)> _on_notify;
     bool _released = false;
 };
 
 inline
-block::block(boost::asio::io_context& ioc)
-    : _ioc(ioc)
+block::block(const boost::asio::executor& ex)
+    : _ex(ex)
 {}
 
 inline
@@ -30,7 +30,7 @@ block::~block()
 {
     if (!_on_notify) return;
 
-    _ioc.post([h = std::move(_on_notify)] {
+    boost::asio::post(_ex, [h = std::move(_on_notify)] {
             h(boost::asio::error::operation_aborted);
         });
 }
@@ -42,7 +42,7 @@ void block::release()
 
     if (!_on_notify) return;
 
-    _ioc.post([h = std::move(_on_notify)] {
+    boost::asio::post(_ex, [h = std::move(_on_notify)] {
             h(boost::system::error_code());
         });
 }
@@ -58,7 +58,7 @@ void block::wait(boost::asio::yield_context yield)
     asio::async_completion<decltype(yield), void(system::error_code)> c(yield);
 
     _on_notify = [ h = std::move(c.completion_handler)
-                 , w = asio::io_context::work(_ioc)
+                 , w = asio::make_work_guard(_ex)
                  ] (const system::error_code& ec) mutable {
                      h(ec);
                  };

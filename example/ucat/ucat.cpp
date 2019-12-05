@@ -58,12 +58,12 @@ void half_duplex_forward(S1& s1, S2& s2, asio::yield_context yield)
 
 void full_duplex_forward(utp::socket s, asio::yield_context yield)
 {
-    auto& ioc = s.get_executor().context();
+    auto ex = s.get_executor();
 
-    block b1(ioc), b2(ioc);
+    block b1(ex), b2(ex);
 
-    asio::posix::stream_descriptor output(ioc, ::dup(STDOUT_FILENO));
-    asio::posix::stream_descriptor input (ioc, ::dup(STDIN_FILENO));
+    asio::posix::stream_descriptor output(ex, ::dup(STDOUT_FILENO));
+    asio::posix::stream_descriptor input (ex, ::dup(STDIN_FILENO));
 
     auto close_everything = [&] {
         s.close();
@@ -71,12 +71,12 @@ void full_duplex_forward(utp::socket s, asio::yield_context yield)
         if (input .is_open()) input .close();
     };
 
-    asio::spawn(ioc, [&] (asio::yield_context yield) {
+    asio::spawn(ex, [&] (asio::yield_context yield) {
         defer on_exit{[&] { close_everything(); b1.release(); }};
         half_duplex_forward(s, output, yield);
     });
 
-    asio::spawn(ioc, [&] (asio::yield_context yield) {
+    asio::spawn(ex, [&] (asio::yield_context yield) {
         defer on_exit{[&] { close_everything(); b2.release(); }};
         half_duplex_forward(input, s, yield);
     });

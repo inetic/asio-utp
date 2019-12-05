@@ -32,9 +32,9 @@ public:
 
     bool is_open() const { return _context && !_closed; }
 
-    boost::asio::io_context::executor_type get_executor() const
+    boost::asio::executor get_executor()
     {
-        return _ioc.get_executor();
+        return _ex;
     }
 
     ~socket_impl();
@@ -76,7 +76,7 @@ private:
     void dispatch_op(Handler&, const char* dbg, const sys::error_code&, Args...);
 
 private:
-    boost::asio::io_context& _ioc;
+    boost::asio::executor _ex;
     service& _service;
 
     void* _utp_socket = nullptr;

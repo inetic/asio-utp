@@ -6,7 +6,11 @@ using namespace std;
 using namespace asio_utp;
 
 socket::socket(boost::asio::io_context& ioc)
-    : _ioc(&ioc)
+    : _ex(ioc.get_executor())
+{}
+
+socket::socket(const boost::asio::executor& ex)
+    : _ex(ex)
 {}
 
 void socket::bind(const endpoint_type& ep, sys::error_code& ec)
@@ -36,10 +40,9 @@ void socket::bind(const udp_multiplexer& m, sys::error_code& ec)
 }
 
 socket::socket(socket&& other)
-    : _ioc(other._ioc)
+    : _ex(move(other._ex))
     , _socket_impl(move(other._socket_impl))
 {
-    other._ioc = nullptr;
     if (_socket_impl) {
         _socket_impl->_owner = this;
     }
@@ -47,9 +50,9 @@ socket::socket(socket&& other)
 
 asio_utp::socket& socket::operator=(socket&& other)
 {
-    assert(!_ioc || !other._ioc || _ioc == other._ioc);
+    assert(!_ex || !other._ex || _ex == other._ex);
 
-    _ioc = other._ioc;
+    _ex = move(other._ex);
     _socket_impl = move(other._socket_impl);
 
     if (_socket_impl) {

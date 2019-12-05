@@ -25,6 +25,7 @@ public:
     udp_multiplexer& operator=(udp_multiplexer&&) = default;
 
     udp_multiplexer(boost::asio::io_context&);
+    udp_multiplexer(const boost::asio::executor&);
 
     void bind(const endpoint_type& local_endpoint, boost::system::error_code&);
     void bind(const udp_multiplexer&, boost::system::error_code&);
@@ -41,14 +42,9 @@ public:
                       , const endpoint_type& destination
                       , CompletionToken&&);
 
-    boost::asio::io_context::executor_type get_executor() const
+    boost::asio::executor get_executor()
     {
-        return _ioc->get_executor();
-    }
-
-    boost::asio::io_context& get_io_service() const
-    {
-        return _ioc->get_executor().context();
+        return _ex;
     }
 
     endpoint_type local_endpoint() const;
@@ -70,7 +66,7 @@ private:
     std::shared_ptr<udp_multiplexer_impl> impl() const;
 
 private:
-    boost::asio::io_context* _ioc = nullptr;
+    boost::asio::executor _ex;
     std::shared_ptr<state> _state;
 };
 
