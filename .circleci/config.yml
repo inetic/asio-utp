@@ -6,7 +6,7 @@ jobs:
     environment:
       - CMAKE_PATH: "/home/circleci/cmake-3.13.2-Linux-x86_64/bin"
       - BOOST_MAJOR: "1"
-      - BOOST_MINOR: "69"
+      - BOOST_MINOR: "71"
       - BOOST_PATCH: "0"
 
     steps:
@@ -31,11 +31,11 @@ jobs:
         command: |
           cd ~
           boost=boost_${BOOST_MAJOR}_${BOOST_MINOR}_${BOOST_PATCH}
-          wget http://downloads.sourceforge.net/project/boost/boost/${BOOST_MAJOR}.${BOOST_MINOR}.${BOOST_PATCH}/${boost}.tar.bz2
+          wget https://dl.bintray.com/boostorg/release/${BOOST_MAJOR}.${BOOST_MINOR}.${BOOST_PATCH}/source/${boost}.tar.bz2
           tar xf ${boost}.tar.bz2
           cd ${boost}
           ./bootstrap.sh
-          ./b2 -j `nproc` -d+0 --link=static --with-system --with-test --with-coroutine
+          ./b2 -j3 -d+0 --link=static --with-system --with-test --with-coroutine
 
       - type: shell
         name: Build
@@ -48,7 +48,7 @@ jobs:
           export CC=gcc-5
           export PATH="$CMAKE_PATH:$PATH"
           cmake .. -DBOOST_ROOT=~/boost_${BOOST_MAJOR}_${BOOST_MINOR}_${BOOST_PATCH}
-          make -j `nproc`
+          make -j3
 
       - type: shell
         name: Test
