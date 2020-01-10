@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.5)
-set(BOOST_VERSION 1.58)
+set(BOOST_VERSION 1.70)
 include(ExternalProject)
 
 option(ASIO_UTP_WITH_TESTS    "Build tests" ON)

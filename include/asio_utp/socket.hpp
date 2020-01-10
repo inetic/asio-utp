@@ -12,6 +12,7 @@ class udp_multiplexer;
 class socket {
 public:
     using endpoint_type = boost::asio::ip::udp::endpoint;
+    using executor_type = boost::asio::io_context::executor_type;
 
 public:
     socket() = default;

@@ -13,6 +13,7 @@
 //
 //------------------------------------------------------------------------------
 
+#include <boost/range.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>

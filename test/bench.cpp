@@ -6,6 +6,7 @@
  */
 #include <iostream>
 #include <sstream>
+#include <boost/range.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/spawn.hpp>
 #include <boost/random/mersenne_twister.hpp>
