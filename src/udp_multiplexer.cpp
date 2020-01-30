@@ -117,6 +117,12 @@ void udp_multiplexer::do_receive(endpoint_type& ep, handler<size_t>&& h)
     _state->impl->register_recv_handler(_state->recv_entry);
 }
 
+udp_multiplexer::on_send_to_connection udp_multiplexer::on_send_to(std::function<on_send_to_handler> handler)
+{
+    assert(_state);
+    return _state->impl->on_send_to(std::move(handler));
+}
+
 udp_multiplexer::endpoint_type udp_multiplexer::local_endpoint() const
 {
     assert(_state);

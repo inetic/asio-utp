@@ -2,6 +2,7 @@
 
 #include <boost/asio/ip/udp.hpp>
 #include <asio_utp/detail/handler.hpp>
+#include <asio_utp/detail/signal.hpp>
 
 namespace asio_utp {
 
@@ -14,6 +15,14 @@ private:
 
 public:
     using endpoint_type = boost::asio::ip::udp::endpoint;
+
+    using on_send_to_handler = void(
+        const std::vector<boost::asio::const_buffer>&,
+        size_t,
+        const endpoint_type&,
+        boost::system::error_code
+    );
+    using on_send_to_connection = Signal<on_send_to_handler>::Connection;
 
 public:
     udp_multiplexer() = default;
@@ -41,6 +50,8 @@ public:
     auto async_send_to( const ConstBufferSequence&
                       , const endpoint_type& destination
                       , CompletionToken&&);
+
+    on_send_to_connection on_send_to(std::function<on_send_to_handler> handler);
 
     boost::asio::executor get_executor()
     {

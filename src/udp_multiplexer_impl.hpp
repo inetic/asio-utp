@@ -5,6 +5,7 @@
 #include "namespaces.hpp"
 #include "weak_from_this.hpp"
 #include <asio_utp/log.hpp>
+#include <asio_utp/detail/signal.hpp>
 #include <iostream>
 
 namespace asio_utp {
@@ -14,6 +15,14 @@ class udp_multiplexer_impl
 {
 public:
     using endpoint_type = asio::ip::udp::endpoint;
+
+    using on_send_to_handler = void(
+        const std::vector<boost::asio::const_buffer>&,
+        size_t,
+        const endpoint_type&,
+        boost::system::error_code
+    );
+    using on_send_to_connection = Signal<on_send_to_handler>::Connection;
 
     using handler_type = std::function<void( const sys::error_code&
                                            , const endpoint_type&
@@ -50,6 +59,8 @@ public:
                       , WriteHandler&&);
 
     void register_recv_handler(recv_entry&);
+
+    on_send_to_connection on_send_to(std::function<on_send_to_handler> handler);
 
     endpoint_type local_endpoint() const {
         return _udp_socket.local_endpoint();
@@ -88,6 +99,7 @@ private:
 
     asio::ip::udp::socket _udp_socket;
     recv_handlers _recv_handlers;
+    Signal<on_send_to_handler> _send_to_signal;
     std::shared_ptr<State> _state;
     bool _is_receiving = false;
     bool _debug = false;
@@ -219,7 +231,15 @@ std::size_t udp_multiplexer_impl::send_to( const ConstBufferSequence& buffers
         }
     }
 
-    return _udp_socket.send_to(buffers, destination, flags, ec);
+    size_t sent = _udp_socket.send_to(buffers, destination, flags, ec);
+
+    std::vector<asio::const_buffer> buffer;
+    std::copy( boost::asio::buffer_sequence_begin(buffers)
+             , boost::asio::buffer_sequence_end(buffers)
+             , std::back_inserter(buffer));
+    _send_to_signal(buffer, sent, destination, ec);
+
+    return sent;
 }
 
 template< typename ConstBufferSequence
@@ -229,7 +249,26 @@ void udp_multiplexer_impl::async_send_to( const ConstBufferSequence& bufs
                                         , const endpoint_type& dst
                                         , WriteHandler&& h)
 {
-    _udp_socket.async_send_to(bufs, dst, std::forward<WriteHandler>(h));
+    std::vector<asio::const_buffer> buffer;
+    std::copy( boost::asio::buffer_sequence_begin(bufs)
+             , boost::asio::buffer_sequence_end(bufs)
+             , std::back_inserter(buffer));
+
+    _udp_socket.async_send_to(bufs, dst, [
+        buffer = std::move(buffer),
+        dst,
+        h = std::forward<WriteHandler>(h),
+        this
+    ] (const sys::error_code& ec, std::size_t bytes_transferred) mutable {
+        _send_to_signal(buffer, bytes_transferred, dst, ec);
+        h(ec, bytes_transferred);
+    });
+}
+
+inline
+udp_multiplexer_impl::on_send_to_connection udp_multiplexer_impl::on_send_to(std::function<on_send_to_handler> handler)
+{
+    return _send_to_signal.connect(std::move(handler));
 }
 
 inline
