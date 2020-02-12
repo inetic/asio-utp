@@ -308,11 +308,6 @@ context::~context()
         log(this, " ~context");
     }
 
-    if (_recv_handle.is_linked()) {
-        _recv_handle.unlink();
-        _multiplexer->on_recv_entry_unlinked();
-    }
-
     utp_destroy(_utp_ctx);
 
     auto& s = asio::use_service<service>(_multiplexer->get_executor().context());
