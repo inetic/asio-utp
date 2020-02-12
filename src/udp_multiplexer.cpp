@@ -145,12 +145,6 @@ void udp_multiplexer::close(boost::system::error_code& ec)
     // leaks.
     _state->recv_entry.handler = nullptr;
 
-    if (_state->recv_entry.is_linked()) {
-        _state->recv_entry.unlink();
-        assert(_state->impl);
-        _state->impl->on_recv_entry_unlinked();
-    }
-
     if (_state->rx_handler) {
         _state->rx_handler.post(asio::error::operation_aborted, 0);
     }

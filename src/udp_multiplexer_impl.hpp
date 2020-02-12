@@ -35,7 +35,10 @@ private:
 
 public:
     struct recv_entry : intrusive_hook {
+        std::weak_ptr<udp_multiplexer_impl> multiplexer;
         handler_type handler;
+
+        ~recv_entry();
     };
 
 private:
@@ -81,11 +84,10 @@ public:
 
     ~udp_multiplexer_impl();
 
-    void on_recv_entry_unlinked();
-
 private:
     void start_receiving();
     void flush_handlers(const sys::error_code& ec, size_t size);
+    void on_recv_entry_unlinked();
 
     // For debugging only
     static
@@ -125,8 +127,22 @@ inline udp_multiplexer_impl::udp_multiplexer_impl(asio::ip::udp::socket s)
 }
 
 inline
+udp_multiplexer_impl::recv_entry::~recv_entry()
+{
+    auto m = multiplexer.lock();
+    assert(!is_linked() || m /* is_linked implies m */);
+    if (!m) return;
+
+    if (is_linked()) {
+        unlink();
+        m->on_recv_entry_unlinked();
+    }
+}
+
+inline
 void udp_multiplexer_impl::register_recv_handler(recv_entry& e)
 {
+    e.multiplexer = asio_utp::weak_from_this(this);
     _recv_handlers.push_back(e);
 
     if (!_is_receiving) {
