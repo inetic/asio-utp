@@ -69,7 +69,8 @@ uint64 context::callback_sendto(utp_callback_arguments* a)
 
     sys::error_code ec;
 
-    self->_multiplexer->send_to( asio::buffer(a->buf, a->len)
+    std::vector<asio::const_buffer> bufs { asio::buffer(a->buf, a->len) };
+    self->_multiplexer->send_to( bufs
                                , util::to_endpoint(*a->address)
                                , 0
                                , ec);
