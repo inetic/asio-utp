@@ -261,9 +261,9 @@ void udp_multiplexer_impl::async_send_to( const std::vector<asio::const_buffer>&
         &buffers,
         &dst,
         h = std::forward<WriteHandler>(h),
-        this
+        self = shared_from_this()
     ] (const sys::error_code& ec, std::size_t bytes_transferred) mutable {
-        _send_to_signal(buffers, bytes_transferred, dst, ec);
+        self->_send_to_signal(buffers, bytes_transferred, dst, ec);
         h(ec, bytes_transferred);
     });
 }
