@@ -282,10 +282,6 @@ void socket_impl::close()
         log(this, " socket_impl::close()");
     }
 
-    if (_closed) return;
-
-    _closed = true;
-
     close_with_error(asio::error::operation_aborted);
 }
 
@@ -340,11 +336,23 @@ void socket_impl::close_with_error(const sys::error_code& ec)
 {
     if (_debug) {
         log(this, " debug_id:", _debug_id, " socket_impl::close_with_error "
-            "_utp_socket:", _utp_socket, " _self:", _self.get());
+            "_utp_socket:", _utp_socket, " _self:", _self.get(), " _closed:", _closed);
     }
 
-    if (_utp_socket) {
-        utp_close((utp_socket*) _utp_socket);
+    if (_closed) {
+        assert(!_accept_handler);
+        assert(!_connect_handler);
+        assert(!_recv_handler);
+        assert(!_send_handler);
+        return;
+    }
+
+    _closed = true;
+
+    auto s = (utp_socket*) _utp_socket;
+
+    if (s) {
+        utp_close(s);
         _self = shared_from_this();
         if (_owner) {
             _owner->_socket_impl = nullptr;
