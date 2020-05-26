@@ -47,8 +47,8 @@ private:
 private:
     friend class ::asio_utp::socket_impl;
 
-    void increment_use_count();
-    void decrement_use_count();
+    void register_socket(socket_impl&);
+    void unregister_socket(socket_impl&);
 
     void start();
     void stop();
@@ -73,9 +73,9 @@ private:
     udp_multiplexer_impl::recv_entry _recv_handle;
     endpoint_type _local_endpoint;
     utp_context* _utp_ctx;
-    // Number of `socket_impl`ementations referencing using `this`.
-    size_t _use_count = 0;
 
+    // Registered sockets are all those that use `this`.
+    intrusive::list<socket_impl, &socket_impl::_register_hook> _registered_sockets;
     intrusive::list<socket_impl, &socket_impl::_accept_hook> _accepting_sockets;
 
     struct ticker_type;

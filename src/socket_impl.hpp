@@ -51,6 +51,7 @@ private:
     void on_accept(void* usocket);
     void on_receive(const unsigned char*, size_t);
 
+    intrusive::list_hook _register_hook;
     intrusive::list_hook _accept_hook;
 
     void do_write(handler<size_t>);

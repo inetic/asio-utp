@@ -37,7 +37,7 @@ void socket_impl::bind(const endpoint_type& ep, sys::error_code& ec)
     if (ec) return;
 
     _context = move(ctx);
-    _context->increment_use_count();
+    _context->register_socket(*this);
 }
 
 void socket_impl::bind(const udp_multiplexer& m)
@@ -49,7 +49,7 @@ void socket_impl::bind(const udp_multiplexer& m)
         log(this, " socket_impl::bind() _context:", _context);
     }
 
-    _context->increment_use_count();
+    _context->register_socket(*this);
 }
 
 void socket_impl::on_connect()
@@ -384,7 +384,7 @@ socket_impl::~socket_impl()
     close_with_error(asio::error::connection_aborted);
 
     if (_context) {
-        _context->decrement_use_count();
+        _context->unregister_socket(*this);
     }
 }
 

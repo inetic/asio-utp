@@ -223,14 +223,17 @@ context::context(shared_ptr<udp_multiplexer_impl> m)
     utp_set_callback(_utp_ctx, UTP_ON_ACCEPT,       &callback_on_accept);
 }
 
-void context::increment_use_count()
-{
-    if (_use_count++ == 0) start();
+void context::register_socket(socket_impl& s) {
+    assert(!s._register_hook.is_linked());
+    bool was_empty = _registered_sockets.empty();
+    _registered_sockets.push_back(s);
+    if (was_empty) start();
 }
 
-void context::decrement_use_count()
-{
-    if (--_use_count == 0) stop();
+void context::unregister_socket(socket_impl& s) {
+    assert(s._register_hook.is_linked());
+    s._register_hook.unlink();
+    if (_registered_sockets.empty()) stop();
 }
 
 void context::start_receiving()
