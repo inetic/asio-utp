@@ -2,6 +2,7 @@
 
 #include <boost/intrusive/list.hpp>
 #include <asio_utp/detail/handler.hpp>
+#include "intrusive_list.hpp"
 
 namespace asio_utp {
     
@@ -40,11 +41,6 @@ public:
     ~socket_impl();
 
 private:
-    using accept_hook_type
-        = boost::intrusive::list_base_hook
-              <boost::intrusive::link_mode
-                  <boost::intrusive::auto_unlink>>;
-
     friend class ::asio_utp::context;
     friend class ::asio_utp::socket;
 
@@ -55,7 +51,7 @@ private:
     void on_accept(void* usocket);
     void on_receive(const unsigned char*, size_t);
 
-    accept_hook_type _accept_hook;
+    intrusive::list_hook _accept_hook;
 
     void do_write(handler<size_t>);
     void do_read(handler<size_t>);

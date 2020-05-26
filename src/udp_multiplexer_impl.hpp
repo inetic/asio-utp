@@ -1,9 +1,9 @@
 #pragma once
 
 #include <boost/asio/ip/udp.hpp>
-#include <boost/intrusive/list.hpp>
 #include "namespaces.hpp"
 #include "weak_from_this.hpp"
+#include "intrusive_list.hpp"
 #include <asio_utp/log.hpp>
 #include <asio_utp/detail/signal.hpp>
 #include <iostream>
@@ -28,13 +28,9 @@ public:
                                            , const endpoint_type&
                                            , const std::vector<uint8_t>&)>;
 
-private:
-    using intrusive_hook = boost::intrusive::list_base_hook
-        <boost::intrusive::link_mode
-            <boost::intrusive::auto_unlink>>;
-
 public:
-    struct recv_entry : intrusive_hook {
+    struct recv_entry {
+        intrusive::list_hook hook;
         std::weak_ptr<udp_multiplexer_impl> multiplexer;
         handler_type handler;
 
@@ -42,9 +38,7 @@ public:
     };
 
 private:
-    using recv_handlers = boost::intrusive::list
-        < recv_entry
-        , boost::intrusive::constant_time_size<false>>;
+    using recv_handlers = intrusive::list<recv_entry, &recv_entry::hook>;
 
 public:
     udp_multiplexer_impl(asio::ip::udp::socket);
@@ -128,11 +122,11 @@ inline
 udp_multiplexer_impl::recv_entry::~recv_entry()
 {
     auto m = multiplexer.lock();
-    assert(!is_linked() || m /* is_linked implies m */);
+    assert(!hook.is_linked() || m /* is_linked implies m */);
     if (!m) return;
 
-    if (is_linked()) {
-        unlink();
+    if (hook.is_linked()) {
+        hook.unlink();
         m->on_recv_entry_unlinked();
     }
 }

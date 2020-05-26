@@ -7,6 +7,7 @@
 #include "util.hpp"
 #include "socket_impl.hpp"
 #include "udp_multiplexer_impl.hpp"
+#include "intrusive_list.hpp"
 
 #include <utp.h>
 #include <asio_utp/socket.hpp>
@@ -75,15 +76,7 @@ private:
     // Number of `socket_impl`ementations referencing using `this`.
     size_t _use_count = 0;
 
-    boost::intrusive::list
-        < socket_impl
-        , boost::intrusive::member_hook< socket_impl
-                                       , socket_impl::accept_hook_type
-                                       , &socket_impl::_accept_hook
-                                       >
-        , boost::intrusive::constant_time_size<false>
-        >
-        _accepting_sockets;
+    intrusive::list<socket_impl, &socket_impl::_accept_hook> _accepting_sockets;
 
     struct ticker_type;
     std::shared_ptr<ticker_type> _ticker;

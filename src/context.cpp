@@ -242,7 +242,7 @@ void context::start_receiving()
     assert(_recv_handle.handler);
     _ticker->start();
 
-    if (!_recv_handle.is_linked())
+    if (!_recv_handle.hook.is_linked())
         _multiplexer->register_recv_handler(_recv_handle);
 }
 
