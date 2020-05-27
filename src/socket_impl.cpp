@@ -212,7 +212,7 @@ void socket_impl::do_read(handler<size_t> h)
 
     assert(!_recv_handler);
 
-    if (!_context) {
+    if (!is_open()) {
         // User provided an empty RX buffer => post handler right a way.
         return h.post(asio::error::bad_descriptor, 0);
     }
