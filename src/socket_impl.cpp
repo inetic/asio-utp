@@ -349,18 +349,6 @@ void socket_impl::close_with_error(const sys::error_code& ec)
 
     _closed = true;
 
-    auto s = (utp_socket*) _utp_socket;
-
-    if (s) {
-        utp_close(s);
-        _self = shared_from_this();
-        if (_owner) {
-            _owner->_socket_impl = nullptr;
-            _owner = nullptr;
-        }
-        _context->increment_outstanding_ops("close");
-    }
-
     if (_accept_handler) {
         post_op(_accept_handler, "accept", ec);
     }
@@ -375,6 +363,19 @@ void socket_impl::close_with_error(const sys::error_code& ec)
 
     if (_send_handler) {
         post_op(_send_handler, "send", ec, 0);
+    }
+
+    auto s = (utp_socket*) _utp_socket;
+
+    if (s) {
+        // Note: Calling utp_close may trigger a call to this function again.
+        utp_close(s);
+        _self = shared_from_this();
+        if (_owner) {
+            _owner->_socket_impl = nullptr;
+            _owner = nullptr;
+        }
+        _context->increment_outstanding_ops("close");
     }
 }
 
