@@ -46,6 +46,8 @@ public:
 
     endpoint_type local_endpoint() const;
 
+    endpoint_type remote_endpoint() const;
+
     bool is_open() const;
 
     void close();

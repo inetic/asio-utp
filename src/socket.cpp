@@ -69,6 +69,12 @@ boost::asio::ip::udp::endpoint socket::local_endpoint() const
     return _socket_impl->local_endpoint();
 }
 
+boost::asio::ip::udp::endpoint socket::remote_endpoint() const
+{
+    assert(_socket_impl); // TODO: throw
+    return _socket_impl->remote_endpoint();
+}
+
 bool socket::is_open() const {
     return _socket_impl && _socket_impl->is_open();
 }

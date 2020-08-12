@@ -28,6 +28,7 @@ public:
     void bind(const udp_multiplexer&);
 
     endpoint_type local_endpoint() const;
+    endpoint_type remote_endpoint() const;
 
     void close();
 
