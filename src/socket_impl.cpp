@@ -279,7 +279,7 @@ asio::ip::udp::endpoint socket_impl::remote_endpoint() const
 {
     assert(_utp_socket && "TODO: This should throw");
     struct sockaddr addr;
-    socklen_t addrlen;
+    socklen_t addrlen = sizeof(addr);
     int result = utp_getpeername((utp_socket*) _utp_socket, &addr, &addrlen);
     assert(!result && "TODO: This should throw");
     return util::to_endpoint(addr);
