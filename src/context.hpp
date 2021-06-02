@@ -56,7 +56,8 @@ private:
 
     void on_read( const sys::error_code& ec
                 , const endpoint_type& ep
-                , const std::vector<uint8_t>& data);
+                , const uint8_t* data
+                , size_t size);
 
     static uint64 callback_log(utp_callback_arguments*);
     static uint64 callback_sendto(utp_callback_arguments*);

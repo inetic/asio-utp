@@ -26,7 +26,8 @@ public:
 
     using handler_type = std::function<void( const sys::error_code&
                                            , const endpoint_type&
-                                           , const std::vector<uint8_t>&)>;
+                                           , const uint8_t*
+                                           , size_t)>;
 
 public:
     struct recv_entry {
@@ -89,6 +90,8 @@ private:
     struct State {
         endpoint_type rx_endpoint;
         std::vector<uint8_t> rx_buffer;
+
+        State() : rx_buffer(65537) {}
     };
 
     asio::ip::udp::socket _udp_socket;
@@ -99,7 +102,7 @@ private:
     bool _debug = false;
 };
 
-} // asio_udp namespace
+} // asio_utp namespace
 
 #include "service.hpp"
 
@@ -171,8 +174,6 @@ inline void udp_multiplexer_impl::start_receiving()
     assert(!_is_receiving);
     _is_receiving = true;
 
-    _state->rx_buffer.resize(65537);
-
     auto wself = asio_utp::weak_from_this(this);
 
     _udp_socket.async_receive_from
@@ -182,7 +183,6 @@ inline void udp_multiplexer_impl::start_receiving()
           {
               if (auto self = wself.lock()) {
                   assert(_is_receiving);
-                  assert(_state->rx_buffer.size() == 65537);
 
                   bool canceled = ec == asio::error::operation_aborted
                                && _udp_socket.is_open();
@@ -213,15 +213,13 @@ void udp_multiplexer_impl::flush_handlers(const sys::error_code& ec, size_t size
 
     if (ec) size = 0;
 
-    _state->rx_buffer.resize(size);
-
     auto recv_handlers = std::move(_recv_handlers);
 
     while (!recv_handlers.empty()) {
         auto e = recv_handlers.front();
         recv_handlers.pop_front();
         assert(e.handler);
-        e.handler(ec, _state->rx_endpoint, _state->rx_buffer);
+        e.handler(ec, _state->rx_endpoint, _state->rx_buffer.data(), size);
     }
 }
 

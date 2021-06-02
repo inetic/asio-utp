@@ -20,12 +20,13 @@ struct udp_multiplexer::state {
 
     void handle_read( const sys::error_code& ec
                     , const endpoint_type& ep
-                    , const std::vector<uint8_t>& v) {
+                    , const uint8_t* data
+                    , size_t size) {
         if (!rx_handler) return;
         *rx_ep = ep;
         rx_ep = nullptr;
-        size_t size = asio::buffer_copy(rx_buffers, asio::buffer(v));
-        rx_handler.post(ec, size);
+        size_t s = asio::buffer_copy(rx_buffers, asio::buffer(data, size));
+        rx_handler.post(ec, s);
     }
 };
 
@@ -58,7 +59,7 @@ void udp_multiplexer::bind( const endpoint_type& local_ep
     _state->impl = move(impl);
 
     _state->recv_entry.handler
-        = std::bind(&state::handle_read, _state, _1, _2, _3);
+        = std::bind(&state::handle_read, _state, _1, _2, _3, _4);
 }
 
 void udp_multiplexer::bind( const udp_multiplexer& other
@@ -77,7 +78,7 @@ void udp_multiplexer::bind( const udp_multiplexer& other
     _state->impl = other._state->impl;
 
     _state->recv_entry.handler
-        = std::bind(&state::handle_read, _state, _1, _2, _3);
+        = std::bind(&state::handle_read, _state, _1, _2, _3, _4);
 }
 
 shared_ptr<udp_multiplexer_impl> udp_multiplexer::impl() const

@@ -192,8 +192,9 @@ context::context(shared_ptr<udp_multiplexer_impl> m)
 
     _recv_handle.handler = [&] ( const sys::error_code& ec
                                , const endpoint_type& ep
-                               , const vector<uint8_t>& data) {
-        return on_read(ec, ep, data);
+                               , const uint8_t* data
+                               , size_t size) {
+        return on_read(ec, ep, data, size);
     };
 
     _ticker = make_shared<ticker_type>(get_executor(), [this] {
@@ -266,10 +267,11 @@ void context::stop()
 
 void context::on_read( const sys::error_code& read_ec
                      , const endpoint_type& ep
-                     , const vector<uint8_t>& data)
+                     , const uint8_t* data
+                     , size_t size)
 {
     if (_debug) {
-        log(this, " context on_read data.size:", data.size()
+        log(this, " context on_read data.size:", size
                 , " from:", ep);
     }
 
@@ -287,8 +289,8 @@ void context::on_read( const sys::error_code& read_ec
     // May be good to use it to decide whether to pass the data to other
     // multiplexers.
     utp_process_udp( _utp_ctx
-                   , (unsigned char*) data.data()
-                   , data.size()
+                   , (unsigned char*) data
+                   , size
                    , (sockaddr*) &src_addr
                    , util::sockaddr_size(src_addr));
 
